@@ -9,7 +9,8 @@
     "ignoreUnknown": false
   },
   "formatter": {
-    "indentStyle": "space"
+    "indentStyle": "space",
+    "lineWidth": 100
   },
   "linter": {
     "rules": {

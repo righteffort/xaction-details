@@ -1,27 +1,31 @@
-export interface ScrapeUi {
-  host: HTMLElement;
-  shadow: ShadowRoot;
-  closeBtn: HTMLElement;
-  fromInput: HTMLInputElement;
-  toInput: HTMLInputElement;
-  scrapeBtn: HTMLButtonElement;
-  statusEl: HTMLElement;
+export interface ScrapeUiOptions {
+  hostId: string;
+  onScrape: (from: string, to: string) => void;
 }
 
-export function createScrapeUi(hostId: string): ScrapeUi {
-  const host = document.createElement('div');
-  host.id = hostId;
-  host.style.cssText = `
+export class ScrapeUi {
+  readonly fromInput: HTMLInputElement;
+  readonly toInput: HTMLInputElement;
+
+  private host: HTMLElement;
+  private shadow: ShadowRoot;
+  private scrapeButton: HTMLButtonElement;
+  private statusLine: HTMLElement;
+
+  constructor(options: ScrapeUiOptions) {
+    this.host = document.createElement('div');
+    this.host.id = options.hostId;
+    this.host.style.cssText = `
     position: fixed;
     top: 16px;
     right: 16px;
     z-index: 2147483647;
     display: none;
   `;
-  document.documentElement.appendChild(host);
+    document.documentElement.appendChild(this.host);
 
-  const shadow = host.attachShadow({ mode: 'open' });
-  shadow.innerHTML = `
+    this.shadow = this.host.attachShadow({ mode: 'open' });
+    this.shadow.innerHTML = `
     <style>
       .box {
         position: relative;
@@ -36,7 +40,7 @@ export function createScrapeUi(hostId: string): ScrapeUi {
         font-family: sans-serif;
         font-size: 13px;
       }
-      .close-btn {
+      .close-button {
         position: absolute;
         top: 4px;
         right: 8px;
@@ -63,7 +67,7 @@ export function createScrapeUi(hostId: string): ScrapeUi {
       }
     </style>
     <div class="box">
-      <span class="close-btn">&times;</span>
+      <span class="close-button">&times;</span>
       <div id="actions">
         <label for="from">Start:</label>
         <input type="date" id="from" required />
@@ -75,20 +79,41 @@ export function createScrapeUi(hostId: string): ScrapeUi {
     </div>
   `;
 
-  return {
-    host,
-    shadow,
-    closeBtn: shadow.querySelector('.close-btn') as HTMLElement,
-    fromInput: shadow.querySelector('#from') as HTMLInputElement,
-    toInput: shadow.querySelector('#to') as HTMLInputElement,
-    scrapeBtn: shadow.querySelector('#scrape') as HTMLButtonElement,
-    statusEl: shadow.querySelector('#status') as HTMLElement,
-  };
-}
+    this.fromInput = this.shadow.querySelector('#from') as HTMLInputElement;
+    this.toInput = this.shadow.querySelector('#to') as HTMLInputElement;
+    this.scrapeButton = this.shadow.querySelector('#scrape') as HTMLButtonElement;
+    this.statusLine = this.shadow.querySelector('#status') as HTMLElement;
+    const updateScrapeEnabled = () => {
+      this.scrapeButton.disabled = !(this.fromInput.value && this.toInput.value);
+    };
+    this.fromInput.addEventListener('input', updateScrapeEnabled);
+    this.toInput.addEventListener('input', updateScrapeEnabled);
 
-export function toggleScrapeUi(hostId: string): void {
-  const host = document.getElementById(hostId);
-  if (host != null) {
-    host.style.display = host.style.display === 'none' ? '' : 'none';
+    const closeButton = this.shadow.querySelector('.close-button') as HTMLElement;
+    closeButton.addEventListener('click', () => this.hide());
+
+    this.scrapeButton.addEventListener('click', () => {
+      options.onScrape(this.fromInput.value, this.toInput.value);
+    });
   }
+
+  setStatus(message: string): void {
+    console.log(message);
+    this.statusLine.textContent = message;
+  }
+
+  setScrapeEnabled(enabled: boolean): void {
+    this.scrapeButton.disabled = !enabled;
+  }
+
+  show(): void {
+    this.host.style.display = '';
+  }
+  hide(): void {
+    this.host.style.display = 'none';
+  }
+  toggle(): void {
+    this.host.style.display = this.host.style.display === 'none' ? '' : 'none';
+  }
+  // get isVisible(): boolean { return this.host.style.display !== 'none'; }
 }
