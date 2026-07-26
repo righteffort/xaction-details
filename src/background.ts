@@ -1,27 +1,42 @@
-import { openDB, type IDBPDatabase } from 'idb';
+import { openDB } from 'idb';
+import type { DBSchema, IDBPDatabase } from 'idb';
 import type { XactionServiceWorkerMethods, XactionServiceWorkerRequest } from './rpc';
-import type { ChaseTransaction } from './chase';
+import type { AmazonInvoice, AmazonOrderNumber } from './amazon';
+import type { ChaseTransaction, ChaseTransactionId } from './chase';
 
 const DB_NAME = 'xaction-details-db';
 const DB_VERSION = 1;
 
-const CHASE_STORE_KEY = 'chase';
+const AMAZON_STORE = 'amazon';
+const CHASE_STORE = 'chase';
+const NEEDS_AMAZON_STORE = 'needs_amazon';
 
-interface Db {
-  [CHASE_STORE_KEY]: {
-    key: string;
+interface Db extends DBSchema {
+  [AMAZON_STORE]: {
+    key: AmazonOrderNumber;
+    value: AmazonInvoice;
+  };
+  [CHASE_STORE]: {
+    key: ChaseTransactionId;
     value: ChaseTransaction;
+  };
+  [NEEDS_AMAZON_STORE]: {
+    key: AmazonOrderNumber;
+    value: ChaseTransactionId;
   };
 }
 
-chrome.runtime.onMessage.addListener((msg, _sender, sendResponse) => {
-  if (!isRpcRequest(msg)) return;
-  dispatch(msg).then(sendResponse);
-  return true;
+chrome.runtime.onMessage.addListener(async (msg) => {
+  if (!isRpcRequest(msg)) {
+    return;
+  }
+  return dispatch(msg);
 });
 
 chrome.action.onClicked.addListener(async (tab) => {
-  if (tab.id === undefined) return;
+  if (tab.id === undefined) {
+    return;
+  }
   try {
     await chrome.tabs.sendMessage(tab.id, { type: 'TOGGLE_UI' });
   } catch {
@@ -37,26 +52,46 @@ function getDb() {
   }
   dbPromise = openDB<Db>(DB_NAME, DB_VERSION, {
     upgrade(db) {
-      db.createObjectStore(CHASE_STORE_KEY);
+      db.createObjectStore(AMAZON_STORE);
+      db.createObjectStore(CHASE_STORE);
+      db.createObjectStore(NEEDS_AMAZON_STORE);
     },
   });
   return dbPromise;
 }
 const rpcMethods: XactionServiceWorkerMethods = {
+  async getNeededAmazonOrders() {
+    return await (await getDb()).getAllKeys(NEEDS_AMAZON_STORE);
+  },
+  async putAmazonInvoice(req) {
+    const tx = (await getDb()).transaction([AMAZON_STORE, NEEDS_AMAZON_STORE], 'readwrite');
+    await tx.objectStore(AMAZON_STORE).put(req.invoice, req.orderNumber);
+    await tx.objectStore(NEEDS_AMAZON_STORE).delete(req.orderNumber);
+    await tx.done;
+  },
   async hasChaseTransaction(id) {
-    const result = (await (await getDb()).getKey(CHASE_STORE_KEY, id)) !== undefined;
+    const result = (await (await getDb()).getKey(CHASE_STORE, id)) !== undefined;
     console.debug(`have ${id} ? ${result}`);
     return result;
   },
   async putChaseTransaction(req) {
-    const tx = (await getDb()).transaction(CHASE_STORE_KEY, 'readwrite');
-    if (await tx.store.get(req.id)) {
-      await tx.done;
-      return;
+    const tx = (await getDb()).transaction(
+      [AMAZON_STORE, CHASE_STORE, NEEDS_AMAZON_STORE],
+      'readwrite',
+    );
+    const chaseStore = tx.objectStore(CHASE_STORE);
+    if (!(await chaseStore.getKey(req.id))) {
+      await chaseStore.put(req.transaction, req.id);
+      const orderNumber = req.transaction.merchantOrderIdentifier;
+      if (orderNumber && !(await tx.objectStore(AMAZON_STORE).getKey(orderNumber))) {
+        const needsAmazonStore = tx.objectStore(NEEDS_AMAZON_STORE);
+        if (!(await needsAmazonStore.getKey(orderNumber))) {
+          needsAmazonStore.put(req.id, orderNumber);
+        }
+      }
+      console.debug(`wrote ${req.id}`);
     }
-    await tx.store.put(req.transaction, req.id);
-    console.debug(`wrote ${req.id}`);
-    return;
+    await tx.done;
   },
 };
 
