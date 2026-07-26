@@ -115,5 +115,4 @@ export class ScrapeUi {
   toggle(): void {
     this.host.style.display = this.host.style.display === 'none' ? '' : 'none';
   }
-  // get isVisible(): boolean { return this.host.style.display !== 'none'; }
 }
