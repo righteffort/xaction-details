@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="13.5 18 176 176" width="132" height="132" style="display:block">
+    <defs>
+      <clipPath id="lensClip">
+        <circle cx="114" cy="116" r="27"></circle>
+      </clipPath>
+      <mask id="excludeLens">
+        <rect x="0" y="0" width="200" height="200" fill="#FFFFFF"></rect>
+        <circle cx="114" cy="116" r="27" fill="#000000"></circle>
+      </mask>
+    </defs>
+    <text x="100" y="112" text-anchor="middle" dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="150" fill="#22C55E" mask="url(#excludeLens)">$</text>
+    <line x1="90.0" y1="140.0" x2="65.2" y2="164.8" stroke="#FFFFFF" stroke-width="22" stroke-linecap="round"></line>
+    <line x1="90.0" y1="140.0" x2="65.2" y2="164.8" stroke="#0B3D1F" stroke-width="14" stroke-linecap="round"></line>
+    <g clip-path="url(#lensClip)">
+      <text x="100" y="112" text-anchor="middle" dominant-baseline="middle" font-family="Arial, Helvetica, sans-serif" font-weight="800" font-size="150" fill="#22C55E" transform="translate(114,116) scale(1.4) translate(-114,-116)">$</text>
+    </g>
+    <circle cx="114" cy="116" r="27" fill="none" stroke="#FFFFFF" stroke-width="19"></circle>
+    <circle cx="114" cy="116" r="27" fill="none" stroke="#0B3D1F" stroke-width="10"></circle>
+  </svg>

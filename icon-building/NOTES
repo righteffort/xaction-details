@@ -1,0 +1,2 @@
+for s in 16 32 48 ; do inkscape -h $s -w $s -d 512  -o ../public/icon/${s}.png  icon-94percent-full.svg ; done
+inkscape -h 128 -w 128 -d 512  -o ../public/icon/128.png  icon-75percent-full.svg

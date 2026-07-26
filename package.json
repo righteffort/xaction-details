@@ -1,0 +1,34 @@
+{
+  "name": "xaction-details",
+  "private": true,
+  "version": "0.0.1",
+  "author": "Ted Romer <tromer@gmail.com>",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "node build.mjs",
+    "build:check": "pnpm check && pnpm build",
+    "dist": "rm -f dist.zip && pnpm build && cd dist && zip -r ../dist.zip *",
+    "clean": "rm -rf dist dist.zip",
+    "typecheck": "tsc --noEmit",
+    "lint": "biome lint",
+    "lint:fix": "biome lint --write",
+    "format:check": "biome format",
+    "format": "biome format --write",
+    "check": "pnpm typecheck && pnpm lint && pnpm format:check",
+    "fix": "pnpm lint:fix && pnpm format",
+    "test:watch": "vitest",
+    "test": "vitest run",
+    "check:all": "pnpm build:check && pnpm test"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.5.5",
+    "@types/chrome": "^0.2.2",
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2",
+    "vite": "^8.1.5",
+    "vitest": "^4.1.10"
+  },
+  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72"
+}
