@@ -65,8 +65,7 @@ class ChaseContent {
         chaseStorage.transactions[key] = entry;
         console.debug(`Will store ${key}:${JSON.stringify(entry)}`);
         this.ui.setStatus(
-          `Working: processed ${added + skipped}/${size} ` +
-            `(added ${added}, skipped ${skipped})`,
+          `Working: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
         );
       },
     };
@@ -74,8 +73,7 @@ class ChaseContent {
       await new Chase({ fetch: (input, init?) => fetch(input, init) }).scrape(from, to, handler);
       await chrome.storage.local.set({ [CHASE_STORAGE_KEY]: chaseStorage });
       this.ui.setStatus(
-        `Complete: processed ${added + skipped}/${size} ` +
-          `(added ${added}, skipped ${skipped})`,
+        `Complete: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
       );
     } catch (e) {
       this.ui.setStatus(`Failed: ${(e as Error).message}`);
