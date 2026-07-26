@@ -1,3 +1,5 @@
+import { callSw } from './rpc';
+
 export interface ScrapeUiOptions {
   hostId: string;
   onScrape: (from: string, to: string) => void;
@@ -7,10 +9,12 @@ export class ScrapeUi {
   readonly fromInput: HTMLInputElement;
   readonly toInput: HTMLInputElement;
 
-  private host: HTMLElement;
-  private shadow: ShadowRoot;
-  private scrapeButton: HTMLButtonElement;
-  private statusLine: HTMLElement;
+  private readonly host: HTMLElement;
+  private readonly shadow: ShadowRoot;
+  private readonly box: HTMLElement;
+  private readonly scrapeButton: HTMLButtonElement;
+  private readonly testActualButton: HTMLButtonElement;
+  private readonly statusLine: HTMLElement;
 
   constructor(options: ScrapeUiOptions) {
     this.host = document.createElement('div');
@@ -39,6 +43,7 @@ export class ScrapeUi {
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         font-family: sans-serif;
         font-size: 13px;
+        outline: none;
       }
       .close-button {
         position: absolute;
@@ -66,22 +71,27 @@ export class ScrapeUi {
         margin-right: 4px;
       }
     </style>
-    <div class="box">
+    <div class="box" tabindex="-1">
       <span class="close-button">&times;</span>
       <div id="actions">
         <label for="from">Start:</label>
         <input type="date" id="from" required />
         <label for="to">End:</label>
         <input type="date" id="to" required />
-        <button id="scrape" disabled>Grab transactions</button>
+        <button type="button" id="scrape" disabled>Grab transactions</button>
+      </div>
+      <div id="test">
+        <button type="button" id="testActual">Test Actual</button>
       </div>
       <div id="status">Idle</div>
     </div>
   `;
 
+    this.box = this.shadow.querySelector('.box') as HTMLElement;
     this.fromInput = this.shadow.querySelector('#from') as HTMLInputElement;
     this.toInput = this.shadow.querySelector('#to') as HTMLInputElement;
     this.scrapeButton = this.shadow.querySelector('#scrape') as HTMLButtonElement;
+    this.testActualButton = this.shadow.querySelector('#testActual') as HTMLButtonElement;
     this.statusLine = this.shadow.querySelector('#status') as HTMLElement;
     const updateScrapeEnabled = () => {
       this.scrapeButton.disabled = !(this.fromInput.value && this.toInput.value);
@@ -95,6 +105,25 @@ export class ScrapeUi {
     this.scrapeButton.addEventListener('click', () => {
       options.onScrape(this.fromInput.value, this.toInput.value);
     });
+    this.testActualButton.addEventListener('click', () => {
+      callSw('testActual').catch((e) => {
+        console.error('testActual call failed', e);
+        this.statusLine.textContent = `testActual call failed: ${e instanceof Error ? e.message : String(e)}`;
+      });
+    });
+
+    this.shadow.addEventListener('keydown', (e: Event) => {
+      if (!(e instanceof KeyboardEvent)) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!this.scrapeButton.disabled) this.scrapeButton.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.hide();
+      }
+    });
+
+    this.box.addEventListener('mousedown', () => this.box.focus());
   }
 
   setStatus(message: string): void {
@@ -106,13 +135,22 @@ export class ScrapeUi {
     this.scrapeButton.disabled = !enabled;
   }
 
+  private focusIfNeeded(): void {
+    if (!this.shadow.contains(document.activeElement)) {
+      this.box.focus();
+    }
+  }
+
   show(): void {
     this.host.style.display = '';
+    this.focusIfNeeded();
   }
   hide(): void {
     this.host.style.display = 'none';
   }
   toggle(): void {
-    this.host.style.display = this.host.style.display === 'none' ? '' : 'none';
+    const willShow = this.host.style.display === 'none';
+    this.host.style.display = willShow ? '' : 'none';
+    if (willShow) this.focusIfNeeded();
   }
 }

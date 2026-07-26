@@ -1,4 +1,7 @@
-import type { Fetcher } from './types';
+import type { Cents, Fetcher } from './types';
+import type { AmazonOrderNumber } from './amazon';
+
+export type ChaseTransactionId = string & { readonly __brand: 'ChaseTransactionId' };
 
 interface JpmcAppDataList {
   profileId?: string;
@@ -13,7 +16,7 @@ interface JpmcAppDataList {
 
 interface JpmcActivity {
   transactionStatusCode?: string;
-  derivedUniqueTransactionIdentifier?: string;
+  derivedUniqueTransactionIdentifier?: ChaseTransactionId;
   merchantDetails: {
     rawMerchantDetails: {
       merchantDbaName: string;
@@ -31,21 +34,21 @@ interface JpmcTransactionHistory {
 
 interface JpmcDetails {
   transactionDetails: {
-    merchantOrderIdentifier: string;
+    merchantOrderIdentifier: AmazonOrderNumber;
   };
 }
 
 export interface ChaseTransaction {
   merchantDbaName: string;
-  transactionAmount: number;
+  transactionAmount: Cents;
   transactionPostDate: Date;
-  merchantOrderIdentifier?: string;
+  merchantOrderIdentifier?: AmazonOrderNumber;
 }
 
 export interface ChaseTransactionHandler {
   setSize: (n: number) => void;
-  has: (key: string) => Promise<boolean>;
-  handle: (key: string, entry: ChaseTransaction) => Promise<void>;
+  has: (id: ChaseTransactionId) => Promise<boolean>;
+  handle: (id: ChaseTransactionId, entry: ChaseTransaction) => Promise<void>;
 }
 
 export class Chase {
@@ -74,13 +77,12 @@ export class Chase {
     if (activities.size === 0) {
       console.debug('No transactions found in range.');
     }
-    let n = 0;
+    let i = 0;
     for (const [k, a] of activities) {
-      n++;
       if (!(await handler.has(k))) {
         const entry: ChaseTransaction = {
           merchantDbaName: a.merchantDetails.rawMerchantDetails.merchantDbaName,
-          transactionAmount: a.transactionAmount,
+          transactionAmount: Math.round(a.transactionAmount * 100) as Cents,
           transactionPostDate: new Date(Date.parse(a.transactionPostDate)),
         };
         const details = await this.getDetails(k);
@@ -89,10 +91,11 @@ export class Chase {
           entry.merchantOrderIdentifier = order;
         }
         await handler.handle(k, entry);
-        if (n < activities.size) {
+        if (i < activities.size - 1) {
           console.debug('Pausing 2s');
           await new Promise((r) => setTimeout(r, 2000));
         }
+        i++;
       }
     }
   }
@@ -134,8 +137,8 @@ export class Chase {
   private async getRecentActivities(
     firstDay: string,
     lastDay: string,
-  ): Promise<Map<string, JpmcActivity>> {
-    const activities = new Map<string, JpmcActivity>();
+  ): Promise<Map<ChaseTransactionId, JpmcActivity>> {
+    const activities = new Map<ChaseTransactionId, JpmcActivity>();
     let paginationMarker = '';
     while (true) {
       const url = this.getListUrl(100, firstDay, lastDay, paginationMarker);
@@ -163,21 +166,21 @@ export class Chase {
       if (!paginationMarker) {
         break;
       }
-      await new Promise((r) => setTimeout(r, 2000)); // 2000 ms
+      await new Promise((r) => setTimeout(r, 2000));
     }
     return activities;
   }
 
   private async getDetails(key: string): Promise<JpmcDetails> {
-    const post_date_s = key.slice(0, 8);
-    const post_time_s = key.slice(8, 15);
+    const postDateStr = key.slice(0, 8);
+    const postTimeStr = key.slice(8, 15);
     const path = `/svc/wr/accounts/secure/gateway/credit-card/transactions/inquiry-maintenance/digital-card-transaction/v1/profiles/${this.onlineProfileId}/card-transaction-details`;
     const params = new URLSearchParams();
     const args = new Map<string, string>(
       Object.entries({
         'digital-account-identifier': this.digitalAccountId,
-        'transaction-post-date': post_date_s,
-        'transaction-post-time': post_time_s,
+        'transaction-post-date': postDateStr,
+        'transaction-post-time': postTimeStr,
         'transaction-identifier': key,
       }),
     );
@@ -227,14 +230,15 @@ export class Chase {
       headers.set('Content-Type', 'application/x-www-form-urlencoded; charset=UTF-8');
     }
     console.debug(`fetch ${url}`);
-    const response = await this.fetcher.fetch(url, {
+    const resp = await this.fetcher.fetch(url, {
       method: method,
       credentials: 'same-origin',
       headers: new Headers(headers),
+      signal: AbortSignal.timeout(30_000),
     });
-    if (!response.ok) {
-      throw new Error(`${url} response status: ${response.status}`);
+    if (!resp.ok) {
+      throw new Error(`${url} response status: ${resp.status}`);
     }
-    return response.json();
+    return resp.json();
   }
 }

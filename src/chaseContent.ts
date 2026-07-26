@@ -1,27 +1,19 @@
 import { ScrapeUi } from './scrapeUi';
 import { Chase } from './chase';
 import type { ChaseTransactionHandler } from './chase';
-
+import { callSw } from './rpc';
+import { realFetcher } from './types';
 const HOST_ID = 'xaction-details-host';
-
-import type { XactionServiceWorkerMethods } from './rpc';
-
-export function callSw<M extends keyof XactionServiceWorkerMethods>(
-  method: M,
-  ...args: Parameters<XactionServiceWorkerMethods[M]>
-): ReturnType<XactionServiceWorkerMethods[M]> {
-  return chrome.runtime.sendMessage({ method, args }) as ReturnType<XactionServiceWorkerMethods[M]>;
-}
 
 class ChaseContent {
   private readonly ui: ScrapeUi;
   constructor() {
     this.ui = new ScrapeUi({
       hostId: HOST_ID,
-      onScrape: (from, to) => {
+      onScrape: async (from, to) => {
         this.ui.setScrapeEnabled(false);
         try {
-          this.scrape(from, to);
+          await this.scrape(from, to);
         } finally {
           this.ui.setScrapeEnabled(true);
         }
@@ -53,9 +45,9 @@ class ChaseContent {
         console.debug(`check whether we have ${key}`);
         const result = await callSw('hasChaseTransaction', key);
         if (result) {
-          skipped += 1;
+          skipped++;
         } else {
-          added += 1;
+          added++;
         }
         return result;
       },
@@ -68,14 +60,18 @@ class ChaseContent {
       },
     };
     try {
-      await new Chase({ fetch: (input, init?) => fetch(input, init) }).scrape(from, to, handler);
+      await new Chase(realFetcher).scrape(from, to, handler);
       this.ui.setStatus(
         `Complete: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
       );
     } catch (e) {
-      this.ui.setStatus(`Failed: ${(e as Error).message}`);
+      this.ui.setStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }
 
-new ChaseContent();
+const INJECTION_MARKER = '__xad_ChaseContentInjected';
+if (!document.documentElement.dataset[INJECTION_MARKER]) {
+  document.documentElement.dataset[INJECTION_MARKER] = '1';
+  new ChaseContent();
+}
