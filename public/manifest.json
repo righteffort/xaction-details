@@ -25,5 +25,6 @@
       "matches": ["https://*.amazon.com/*"],
       "js": ["src/amazonContent.js"]
     }
-  ]
+  ],
+  "permissions": ["storage", "unlimitedStorage"]
 }

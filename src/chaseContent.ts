@@ -1,8 +1,12 @@
 import { ScrapeUi } from './scrapeUi';
 import { Chase } from './chase';
-import type { ChaseTransactionHandler } from './chase';
+import type { ChaseTransaction, ChaseTransactionHandler } from './chase';
 
 const HOST_ID = 'xaction-details-host';
+
+interface ChaseStorage {
+  transactions: Record<string, ChaseTransaction>;
+}
 
 class ChaseContent {
   private readonly ui: ScrapeUi;
@@ -10,7 +14,12 @@ class ChaseContent {
     this.ui = new ScrapeUi({
       hostId: HOST_ID,
       onScrape: (from, to) => {
-        this.scrape(from, to);
+        this.ui.setScrapeEnabled(false);
+        try {
+          this.scrape(from, to);
+        } finally {
+          this.ui.setScrapeEnabled(true);
+        }
       },
     });
     const maxDate = Temporal.Now.zonedDateTimeISO('America/New_York').toPlainDate();
@@ -27,6 +36,12 @@ class ChaseContent {
     });
   }
   private async scrape(from: string, to: string) {
+    const CHASE_STORAGE_KEY = 'chase';
+    const chaseStorage = ((await chrome.storage.local.get(CHASE_STORAGE_KEY))[CHASE_STORAGE_KEY] as
+      | ChaseStorage
+      | undefined) ?? {
+      transactions: {},
+    };
     this.ui.setStatus(`Scraping ${from} through ${to}`);
     let added = 0;
     let skipped = 0;
@@ -38,7 +53,7 @@ class ChaseContent {
       has: (key) => {
         // TODO: Implement me!
         console.log(`time to check whether we have ${key}`);
-        const result = false;
+        const result = Object.hasOwn(chaseStorage.transactions, key);
         if (result) {
           skipped += 1;
         } else {
@@ -47,18 +62,20 @@ class ChaseContent {
         return result;
       },
       handle: (key, entry) => {
-        console.debug(`would store ${key}:${JSON.stringify(entry)}`);
+        chaseStorage.transactions[key] = entry;
+        console.debug(`Will store ${key}:${JSON.stringify(entry)}`);
         this.ui.setStatus(
           `Working: processed ${added + skipped}/${size} ` +
-            `("added" ${added}, skipped ${skipped})`,
+            `(added ${added}, skipped ${skipped})`,
         );
       },
     };
     try {
       await new Chase({ fetch: (input, init?) => fetch(input, init) }).scrape(from, to, handler);
+      await chrome.storage.local.set({ [CHASE_STORAGE_KEY]: chaseStorage });
       this.ui.setStatus(
         `Complete: processed ${added + skipped}/${size} ` +
-          `("added" ${added}, skipped ${skipped})`,
+          `(added ${added}, skipped ${skipped})`,
       );
     } catch (e) {
       this.ui.setStatus(`Failed: ${(e as Error).message}`);
