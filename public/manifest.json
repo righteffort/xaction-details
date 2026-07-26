@@ -26,5 +26,5 @@
       "js": ["src/amazonContent.js"]
     }
   ],
-  "permissions": ["storage", "unlimitedStorage"]
+  "permissions": ["unlimitedStorage"]
 }

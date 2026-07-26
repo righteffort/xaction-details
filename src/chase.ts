@@ -44,8 +44,8 @@ export interface ChaseTransaction {
 
 export interface ChaseTransactionHandler {
   setSize: (n: number) => void;
-  has: (key: string) => boolean;
-  handle: (key: string, entry: ChaseTransaction) => void;
+  has: (key: string) => Promise<boolean>;
+  handle: (key: string, entry: ChaseTransaction) => Promise<void>;
 }
 
 export class Chase {
@@ -60,6 +60,8 @@ export class Chase {
     this.digitalAccountId = '';
   }
 
+  // TODO: can we make this cleaner? We do have to ask the client whether it already
+  // has the details to avoid spamming chase for info we already have.
   async scrape(startDate: string, endDate: string, handler: ChaseTransactionHandler) {
     console.debug('Initializing');
     await this.initialize();
@@ -75,7 +77,7 @@ export class Chase {
     let n = 0;
     for (const [k, a] of activities) {
       n++;
-      if (!handler.has(k)) {
+      if (!(await handler.has(k))) {
         const entry: ChaseTransaction = {
           merchantDbaName: a.merchantDetails.rawMerchantDetails.merchantDbaName,
           transactionAmount: a.transactionAmount,
@@ -86,7 +88,7 @@ export class Chase {
         if (order) {
           entry.merchantOrderIdentifier = order;
         }
-        handler.handle(k, entry);
+        await handler.handle(k, entry);
         if (n < activities.size) {
           console.debug('Pausing 2s');
           await new Promise((r) => setTimeout(r, 2000));

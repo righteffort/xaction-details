@@ -1,11 +1,16 @@
 import { ScrapeUi } from './scrapeUi';
 import { Chase } from './chase';
-import type { ChaseTransaction, ChaseTransactionHandler } from './chase';
+import type { ChaseTransactionHandler } from './chase';
 
 const HOST_ID = 'xaction-details-host';
 
-interface ChaseStorage {
-  transactions: Record<string, ChaseTransaction>;
+import type { XactionServiceWorkerMethods } from './rpc';
+
+export function callSw<M extends keyof XactionServiceWorkerMethods>(
+  method: M,
+  ...args: Parameters<XactionServiceWorkerMethods[M]>
+): ReturnType<XactionServiceWorkerMethods[M]> {
+  return chrome.runtime.sendMessage({ method, args }) as ReturnType<XactionServiceWorkerMethods[M]>;
 }
 
 class ChaseContent {
@@ -36,12 +41,6 @@ class ChaseContent {
     });
   }
   private async scrape(from: string, to: string) {
-    const CHASE_STORAGE_KEY = 'chase';
-    const chaseStorage = ((await chrome.storage.local.get(CHASE_STORAGE_KEY))[CHASE_STORAGE_KEY] as
-      | ChaseStorage
-      | undefined) ?? {
-      transactions: {},
-    };
     this.ui.setStatus(`Scraping ${from} through ${to}`);
     let added = 0;
     let skipped = 0;
@@ -50,10 +49,9 @@ class ChaseContent {
       setSize(n) {
         size = n;
       },
-      has: (key) => {
-        // TODO: Implement me!
-        console.log(`time to check whether we have ${key}`);
-        const result = Object.hasOwn(chaseStorage.transactions, key);
+      has: async (key) => {
+        console.debug(`check whether we have ${key}`);
+        const result = await callSw('hasChaseTransaction', key);
         if (result) {
           skipped += 1;
         } else {
@@ -61,9 +59,9 @@ class ChaseContent {
         }
         return result;
       },
-      handle: (key, entry) => {
-        chaseStorage.transactions[key] = entry;
-        console.debug(`Will store ${key}:${JSON.stringify(entry)}`);
+      handle: async (key, entry) => {
+        await callSw('putChaseTransaction', { id: key, transaction: entry });
+        console.debug(`Stored ${key}:${JSON.stringify(entry)}`);
         this.ui.setStatus(
           `Working: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
         );
@@ -71,7 +69,6 @@ class ChaseContent {
     };
     try {
       await new Chase({ fetch: (input, init?) => fetch(input, init) }).scrape(from, to, handler);
-      await chrome.storage.local.set({ [CHASE_STORAGE_KEY]: chaseStorage });
       this.ui.setStatus(
         `Complete: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
       );
