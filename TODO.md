@@ -1,10 +1,9 @@
 Necessary
 * What to do about multiple Amazon accounts?
 * Disable scraping until logged in
-* Keep chase data in unlimited local storage
-* Know what's already in local storage to avoid re-fetching it
-* Purge old data in local storage
-* Actually talk to Actual
+* Know what's already in local storage to avoid re-fetching it (i.e. default date range)
+* Purge old persistent data
+* Talk to Actual
 * Privacy policy etc
 * Put it in Google Web Store
 * Basic testing
@@ -13,6 +12,9 @@ Necessary
 
 Probably
 * Move scrapeUi back into chaseContent
+
+Maybe
+- maybe initial ui is in popup and we just use box for status
 
 Nice to have
 * Provide a hint that we need (N) orders from Amazon
@@ -26,4 +28,5 @@ Nice to have
 * Forward compatible with multiple merchants, institutions, multiple accounts at each
 * Deterministic identifier for logged in Amazon user. Apparently: `await fetch(https://www.amazon.com/gp/profile/, { credentials: "include", redirect: "follow" }).url` will have it at the tail of the URL. And the body will have the "label" in `#shop-influencer-profile-name` which we can suggest as the friendly name
 * Use a leaky bucket rate limiter to sleep *before* expensive calls instead of fragile logic to lsleep after. See thromer/amazon-orders repo.
-* Escape key in dialog works to dismiss.
+* Escape key in dialog works to dismiss. Enter works to submit
+- Some form of undo

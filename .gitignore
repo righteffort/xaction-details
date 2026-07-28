@@ -1,3 +1,12 @@
+## Auto-generated build inputs
+
+src/gen/
+
+## Files with PII, creds, etc. for testing
+
+src/private/
+testdata/private/
+
 ## Node
 
 node_modules

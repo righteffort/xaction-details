@@ -6,22 +6,28 @@
   "license": "MIT",
   "type": "module",
   "scripts": {
-    "dev": "vite",
+    "actual-http-api": "pnpm --filter openapi-gen generate \"$PWD/actual-http-api/swagger.json\" \"$PWD/src/gen/actual-http-api.d.ts\"",
+    "prebuild": "pnpm actual-http-api",
+    "prelint": "pnpm actual-http-api",
+    "pretest": "pnpm actual-http-api",
+    "pretypecheck": "pnpm actual-http-api",
     "build": "node build.mjs",
-    "build:check": "pnpm check && pnpm build",
-    "dist": "rm -f dist.zip && pnpm build && cd dist && zip -r ../dist.zip *",
-    "clean": "rm -rf dist dist.zip",
+    "build:check": "pnpm check && node build.mjs",
+    "rmrf": "node scripts/rmrf.mjs",
+    "dist": "rmrf dist.zip && pnpm build && cd dist && zip -r ../dist.zip *",
+    "clean": "rmrf dist dist.zip src/gen",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint",
-    "lint:fix": "biome lint --write",
+    "lint:fix": "pnpm lint --write",
     "format:check": "biome format",
-    "format": "biome format --write",
+    "format": "pnpm format:check --write",
     "check": "pnpm typecheck && pnpm lint && pnpm format:check",
     "fix": "pnpm lint:fix && pnpm format",
     "test:watch": "vitest",
-    "test": "vitest run",
+    "test": "pnpm test:watch run",
     "check:all": "pnpm build:check && pnpm test"
   },
+  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72",
   "devDependencies": {
     "@biomejs/biome": "2.5.5",
     "@types/chrome": "^0.2.2",
@@ -30,8 +36,8 @@
     "vite": "^8.1.5",
     "vitest": "^4.1.10"
   },
-  "packageManager": "pnpm@11.17.0+sha512.cca3cea332ad254bb84145f966d19f4879615210346fc92c79a047f23a0d7b3cca3c3792f0076ba1f1831d277efbcf0a9119b31a9a60eca7fb3d6231f331ef72",
   "dependencies": {
-    "idb": "^8.0.3"
+    "idb": "^8.0.3",
+    "openapi-fetch": "^0.17.0"
   }
 }

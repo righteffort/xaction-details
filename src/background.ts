@@ -110,3 +110,7 @@ function dispatch<K extends keyof XactionServiceWorkerMethods>(req: {
   ) => ReturnType<XactionServiceWorkerMethods[K]>;
   return fn(...req.args);
 }
+
+import { testActual } from './private/testActual';
+console.log('testing actual');
+testActual().then(() => console.log('tested actual'))

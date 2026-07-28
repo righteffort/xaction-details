@@ -10,13 +10,14 @@
   },
   "formatter": {
     "indentStyle": "space",
-    "lineWidth": 100
+    "lineWidth": 100,
+    "includes": ["**", "!actual-http-api/**", "!src/gen/**"]
   },
   "linter": {
     "rules": {
       "preset": "recommended"
     },
-    "includes": ["**", "!dist/**", "!icon-building/**"]
+    "includes": ["**", "!icon-building/**"]
   },
   "javascript": {
     "formatter": {

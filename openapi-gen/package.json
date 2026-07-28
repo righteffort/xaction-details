@@ -1,0 +1,12 @@
+{
+  "name": "openapi-gen",
+  "private": true,
+  "version": "0.0.0",
+  "scripts": {
+    "generate": "node generate.mjs"
+  },
+  "devDependencies": {
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.x"
+  }
+}
