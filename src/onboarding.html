@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Configuration - Xaction Details</title>
+</head>
+<body>
+  <p>Actual Budget Configuration. You can change this later via options.</p>
+  <div>
+    <label for="serverUrl">API Server URL:</label>
+    <input type="url" id="serverUrl" required />
+  </div>
+  <div>
+    <label for="apiKey">API Server API key:</label>
+    <input id="apiKey" required />
+  </div>
+  <div>
+    <label for="syncId">Actual Budget Sync ID:</label>
+    <input id="syncId" required />
+  </div>
+  <div>
+    <label for="chaseAccountId">Actual Budget Chase Account ID:</label>
+    <input id="chaseAccountId" required />
+  </div>
+  <button type="submit" id="saveButton">Authorize & Save</button>
+  <div id="status"></div>
+  <script type="module">
+    import { initConfigForm } from "./config-form";
+    initConfigForm({
+      prefill: false,
+      savedMessage: "Settings saved, you may close this window.",
+    });
+  </script>
+</body>
+</html>

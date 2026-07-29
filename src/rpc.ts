@@ -16,6 +16,7 @@ export interface XactionServiceWorkerMethods {
   putAmazonInvoice(req: PutAmazonInvoiceReq): Promise<void>;
   hasChaseTransaction(id: ChaseTransactionId): Promise<boolean>;
   putChaseTransaction(req: PutChaseTransactionReq): Promise<void>;
+  testActual(): Promise<void>;
 }
 
 export type XactionServiceWorkerRequest = {

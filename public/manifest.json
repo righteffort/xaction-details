@@ -9,6 +9,12 @@
     "48": "icon/48.png",
     "128": "icon/128.png"
   },
+  "permissions": ["storage", "unlimitedStorage"],
+  "optional_host_permissions": ["*://*/*"],
+  "options_ui": {
+    "page": "src/options.html",
+    "open_in_tab": false
+  },
   "action": {
     "default_title": "Xaction Details"
   },
@@ -25,6 +31,5 @@
       "matches": ["https://*.amazon.com/*"],
       "js": ["src/amazonContent.js"]
     }
-  ],
-  "permissions": ["unlimitedStorage"]
+  ]
 }

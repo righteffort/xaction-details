@@ -1,3 +1,5 @@
+import { callSw } from './rpc';
+
 export interface ScrapeUiOptions {
   hostId: string;
   onScrape: (from: string, to: string) => void;
@@ -7,10 +9,11 @@ export class ScrapeUi {
   readonly fromInput: HTMLInputElement;
   readonly toInput: HTMLInputElement;
 
-  private host: HTMLElement;
-  private shadow: ShadowRoot;
-  private scrapeButton: HTMLButtonElement;
-  private statusLine: HTMLElement;
+  private readonly host: HTMLElement;
+  private readonly shadow: ShadowRoot;
+  private readonly scrapeButton: HTMLButtonElement;
+  private readonly testActualButton: HTMLButtonElement;
+  private readonly statusLine: HTMLElement;
 
   constructor(options: ScrapeUiOptions) {
     this.host = document.createElement('div');
@@ -73,7 +76,10 @@ export class ScrapeUi {
         <input type="date" id="from" required />
         <label for="to">End:</label>
         <input type="date" id="to" required />
-        <button id="scrape" disabled>Grab transactions</button>
+        <button type="submit" id="scrape" disabled>Grab transactions</button>
+      </div>
+      <div id="test">
+        <button type="submit" id="testActual">Test Actual</button>
       </div>
       <div id="status">Idle</div>
     </div>
@@ -82,6 +88,7 @@ export class ScrapeUi {
     this.fromInput = this.shadow.querySelector('#from') as HTMLInputElement;
     this.toInput = this.shadow.querySelector('#to') as HTMLInputElement;
     this.scrapeButton = this.shadow.querySelector('#scrape') as HTMLButtonElement;
+    this.testActualButton = this.shadow.querySelector('#testActual') as HTMLButtonElement;
     this.statusLine = this.shadow.querySelector('#status') as HTMLElement;
     const updateScrapeEnabled = () => {
       this.scrapeButton.disabled = !(this.fromInput.value && this.toInput.value);
@@ -94,6 +101,12 @@ export class ScrapeUi {
 
     this.scrapeButton.addEventListener('click', () => {
       options.onScrape(this.fromInput.value, this.toInput.value);
+    });
+    this.testActualButton.addEventListener('click', () => {
+      callSw('testActual').catch((e) => {
+        console.error('testActual call failed', e);
+        this.statusLine.textContent = `testActual call failed: ${e instanceof Error ? e.message : String(e)}`;
+      });
     });
   }
 

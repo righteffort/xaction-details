@@ -3,6 +3,8 @@ import type { DBSchema, IDBPDatabase } from 'idb';
 import type { XactionServiceWorkerMethods, XactionServiceWorkerRequest } from './rpc';
 import type { AmazonInvoice, AmazonOrderNumber } from './amazon';
 import type { ChaseTransaction, ChaseTransactionId } from './chase';
+import { getXadConfig, isXadConfigIncomplete } from './config';
+import { ActualHttpClient, testActual } from './testActual';
 
 const DB_NAME = 'xaction-details-db';
 const DB_VERSION = 1;
@@ -25,6 +27,16 @@ interface Db extends DBSchema {
     value: ChaseTransactionId;
   };
 }
+
+chrome.runtime.onInstalled.addListener(async (details) => {
+  console.log(`Extension installed at ${new Date()}`, details);
+  if (details.reason === 'install') {
+    const config = await getXadConfig();
+    if (config == null || isXadConfigIncomplete(config)) {
+      chrome.tabs.create({ url: 'src/onboarding.html' });
+    }
+  }
+});
 
 chrome.runtime.onMessage.addListener(async (msg) => {
   if (!isRpcRequest(msg)) {
@@ -93,6 +105,19 @@ const rpcMethods: XactionServiceWorkerMethods = {
     }
     await tx.done;
   },
+  async testActual() {
+    console.log('testing actual');
+    function fail(message = 'Internal error'): never {
+      throw new Error(message);
+    }
+    const xadConfig = await getXadConfig();
+    if (xadConfig == null || isXadConfigIncomplete(xadConfig)) {
+      throw new Error('Incomplete Actual configuration, update extension options');
+    }
+    const api = new ActualHttpClient(xadConfig.actual || fail('wtf'));
+    await testActual(api);
+    console.log('tested actual');
+  },
 };
 
 function isRpcRequest(msg: unknown): msg is XactionServiceWorkerRequest {
@@ -110,7 +135,3 @@ function dispatch<K extends keyof XactionServiceWorkerMethods>(req: {
   ) => ReturnType<XactionServiceWorkerMethods[K]>;
   return fn(...req.args);
 }
-
-import { testActual } from './private/testActual';
-console.log('testing actual');
-testActual().then(() => console.log('tested actual'))

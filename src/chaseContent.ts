@@ -65,7 +65,7 @@ class ChaseContent {
         `Complete: processed ${added + skipped}/${size} ` + `(added ${added}, skipped ${skipped})`,
       );
     } catch (e) {
-      this.ui.setStatus(`Failed: ${(e as Error).message}`);
+      this.ui.setStatus(`Failed: ${e instanceof Error ? e.message : String(e)}`);
     }
   }
 }

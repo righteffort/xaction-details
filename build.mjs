@@ -27,6 +27,25 @@ async function buildContentScript(name) {
   });
 }
 
+async function buildHtmlPage(name) {
+  await build({
+    base: './',
+    build: {
+      ...baseBuild,
+      rolldownOptions: {
+        input: `src/${name}.html`,
+        output: {
+          ...baseOutput,
+          entryFileNames: `src/${name}.js`,
+          format: 'iife',
+          codeSplitting: false,
+        },
+      },
+      sourcemap: 'inline',
+    },
+  });
+}
+
 async function buildBackground() {
   await build({
     build: {
@@ -39,13 +58,19 @@ async function buildBackground() {
           chunkFileNames: 'src/[name].js',
         },
       },
+      sourcemap: 'inline',
     },
   });
 }
 
 const contentEntries = ['chaseContent', 'amazonContent'];
+const htmlEntries = ['onboarding', 'options'];
 
 for (const name of contentEntries) {
   await buildContentScript(name);
+}
+
+for (const name of htmlEntries) {
+  await buildHtmlPage(name);
 }
 await buildBackground();
