@@ -1,4 +1,13 @@
+Release
+* permissions reduction & tidy up
+  * try to get rid of host permissions: enable/disable via options; and then register & inject contentscript
+  * after that, declarativeContent to enable/disable action
+  * and action click -> prompt to enable for site (but don't get carried away?)
+* expose historyRetentionDays in settings ui
+
 Necessary
+* support encryption key during config
+* Refuse to fetch history beyond prune window
 * What to do about multiple Amazon accounts?
 * Disable scraping until logged in
 * Know what's already in local storage to avoid re-fetching it (i.e. default date range)
@@ -14,7 +23,7 @@ Probably
 * Move scrapeUi back into chaseContent
 
 Maybe
-- maybe initial ui is in popup and we just use box for status
+* maybe initial ui is in popup and we just use box for status
 
 Nice to have
 * Provide a hint that we need (N) orders from Amazon
@@ -29,4 +38,4 @@ Nice to have
 * Deterministic identifier for logged in Amazon user. Apparently: `await fetch(https://www.amazon.com/gp/profile/, { credentials: "include", redirect: "follow" }).url` will have it at the tail of the URL. And the body will have the "label" in `#shop-influencer-profile-name` which we can suggest as the friendly name
 * Use a leaky bucket rate limiter to sleep *before* expensive calls instead of fragile logic to lsleep after. See thromer/amazon-orders repo.
 * Escape key in dialog works to dismiss. Enter works to submit
-- Some form of undo
+* Some form of undo

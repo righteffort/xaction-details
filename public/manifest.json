@@ -1,15 +1,16 @@
 {
-  "name": "Xaction Details",
-  "description": "Transaction Details Extension",
-  "version": "0.0.1",
   "manifest_version": 3,
+  "name": "Xaction Details",
+  "version": "0.0.1",
+  "key": "MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAqz08NCkojezHCyr6tlsoqeJHYkmjpDZt8daVe4GLKlCOSb7vuH+VYTdN1/KnNxIAyOoFHrEBBqKhwPg8Sffe358A0OLNYT6dUEyURemR1lFWTKvjUe6cwExODKRkjeTCKa3nnmr3bjU5cMhVpZuPXAeTCUN+uOiTXxpMf6RKrTI+iTCwvgvpcTtI5tihvg51tl7qHueIC/tNpnO4OuHVWM2E47bFX0EtP9hBMV3MdKVGaPnGqKUQE8d1rIrZXhtoTNxbj2zn+IGjRCS328o0SK0rhIfjROaqth6H0zyE8kBmpINPIyDk400jF4QPEkYZAXlRRg9Tx0hKboV59q/WEQIDAQAB",
+  "description": "Transaction Details Extension",
   "icons": {
     "16": "icon/16.png",
     "32": "icon/32.png",
     "48": "icon/48.png",
     "128": "icon/128.png"
   },
-  "permissions": ["storage", "unlimitedStorage"],
+  "permissions": ["declarativeContent", "storage", "unlimitedStorage"],
   "optional_host_permissions": ["*://*/*"],
   "options_ui": {
     "page": "src/options.html",

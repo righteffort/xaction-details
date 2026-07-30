@@ -1,4 +1,9 @@
-import { getOrigin, getXadConfig, isXadConfigIncomplete, setXadConfig } from './config';
+import {
+  getOrigin,
+  getApiServerConfig,
+  setApiServerConfig,
+  isApiServerConfigComplete,
+} from './config';
 
 interface ConfigFormOptions {
   // Prefill with the currently-saved config (options page only).
@@ -13,7 +18,7 @@ export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
   const serverUrl = document.getElementById('serverUrl') as HTMLInputElement;
   const apiKey = document.getElementById('apiKey') as HTMLInputElement;
   const syncId = document.getElementById('syncId') as HTMLInputElement;
-  const chaseAccountId = document.getElementById('chaseAccountId') as HTMLInputElement;
+  // const chaseAccountId = document.getElementById('chaseAccountId') as HTMLInputElement;
   const saveButton = document.getElementById('saveButton') as HTMLButtonElement;
   const statusDiv = document.getElementById('status') as HTMLDivElement;
 
@@ -22,16 +27,15 @@ export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
     statusDiv.className = type;
   }
 
+  // TODO this is all silly we can have a single form for onboarding and options probably.
   if (prefill) {
     void (async () => {
-      const xadConfig = await getXadConfig();
-      const config = xadConfig?.actual;
+      const config = await getApiServerConfig();
       if (!config) return;
-      serverUrl.value = config.apiServerUrl;
-      apiKey.value = config.apiServerApiKey;
+      serverUrl.value = config.url;
+      apiKey.value = config.apiKey;
       syncId.value = config.syncId;
-      chaseAccountId.value = config.chaseAccountId;
-      if (isXadConfigIncomplete(xadConfig)) {
+      if (!isApiServerConfigComplete(config)) {
         showStatus('Incomplete configuration', 'warning');
       }
     })();
@@ -40,16 +44,13 @@ export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
   saveButton.addEventListener('click', async () => {
     try {
       const config = {
-        actual: {
-          apiServerUrl: getOrigin(serverUrl.value),
-          apiServerApiKey: apiKey.value,
-          syncId: syncId.value,
-          chaseAccountId: chaseAccountId.value,
-        },
+        url: getOrigin(serverUrl.value),
+        apiKey: apiKey.value,
+        syncId: syncId.value,
       };
 
-      await setXadConfig(config);
-      showStatus(isXadConfigIncomplete(config) ? INCOMPLETE_WARNING : savedMessage, 'success');
+      await setApiServerConfig(config);
+      showStatus(!isApiServerConfigComplete(config) ? INCOMPLETE_WARNING : savedMessage, 'success');
     } catch (e) {
       const msg = `Failed: ${e instanceof Error ? e.message : e}`;
       showStatus(msg, 'error');

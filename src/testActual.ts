@@ -1,4 +1,4 @@
-import type { XadConfig } from './config';
+import type { ApiServerConfig } from './config';
 import type { components } from './gen/actual-http-api';
 import createClient from 'openapi-fetch';
 import type { Client } from 'openapi-fetch';
@@ -12,11 +12,14 @@ type Account = components['schemas']['Account'];
 export class ActualHttpClient {
   private readonly api: Client<paths>;
   private readonly defaultSyncId: string;
-  constructor(config: XadConfig['actual']) {
+  constructor(config: ApiServerConfig) {
     this.api = createClient<paths>({
-      baseUrl: `${config.apiServerUrl}/v1`,
+      baseUrl: `${config.url}/v1`,
       headers: {
-        'x-api-key': config.apiServerApiKey,
+        'x-api-key': config.apiKey,
+        ...(config.budgetEncryptionKey !== undefined && {
+          'budget-encryption-password': config.budgetEncryptionKey,
+        }),
       },
       signal: AbortSignal.timeout(30_000),
     });
