@@ -191,8 +191,8 @@ function getDb() {
   dbPromise = openDB<Db>(DB_NAME, DB_VERSION, {
     upgrade(db) {
       db.createObjectStore(AMAZON_STORE).createIndex('by-date', 'date');
-      db.createObjectStore(CHASE_STORE).createIndex('by-date', 'date');
-      db.createObjectStore(NEEDS_AMAZON_STORE).createIndex('by-date', 'transactionPostDate');
+      db.createObjectStore(CHASE_STORE).createIndex('by-date', 'transactionPostDate');
+      db.createObjectStore(NEEDS_AMAZON_STORE).createIndex('by-date', 'date');
     },
   });
   return dbPromise;
@@ -204,14 +204,17 @@ async function pruneHistory(days: number) {
   for (const s of PRUNABLE_STORES) {
     const tx = (await getDb()).transaction(s, 'readwrite');
     const index = tx.store.index('by-date');
+    let i = 0;
     for await (const cursor of index.iterate(range)) {
       cursor.delete();
+      i++;
     }
+    console.debug(`pruneHistory(${days}) deleted ${i} items from ${s}`);
     await tx.done;
   }
 }
 
-async function scheduleCleanup() {
+async function schedulePrune() {
   chrome.alarms.create(PRUNE_ALARM_NAME, { delayInMinutes: PRUNE_ALARM_DELAY_MINUTES });
 }
 
@@ -226,22 +229,34 @@ chrome.alarms.onAlarm.addListener(async (alarm) => {
   }
 });
 
+function fixDate(value: Date | string | unknown): Date {
+  const d = value instanceof Date ? value : new Date(value as string);
+  if (Number.isNaN(d.getTime())) {
+    throw new Error(`Invalid date value: ${JSON.stringify(value)}`);
+  }
+  return d;
+}
+
 const rpcMethods: XactionServiceWorkerMethods = {
   async getNeededAmazonOrders() {
     return await (await getDb()).getAllKeys(NEEDS_AMAZON_STORE);
   },
   async putAmazonInvoice(req) {
+    // TODO: Don't do this once structured clone message serialization is reliably available.
+    req.invoice.date = fixDate(req.invoice.date);
     const tx = (await getDb()).transaction([AMAZON_STORE, NEEDS_AMAZON_STORE], 'readwrite');
     await tx.objectStore(AMAZON_STORE).put(req.invoice, req.orderNumber);
     await tx.objectStore(NEEDS_AMAZON_STORE).delete(req.orderNumber);
     await tx.done;
-    await scheduleCleanup();
+    await schedulePrune();
   },
   async hasChaseTransaction(id) {
     const result = (await (await getDb()).getKey(CHASE_STORE, id)) !== undefined;
     return result;
   },
   async putChaseTransaction(req) {
+    // TODO: Don't do this once structured clone message serialization is reliably available.
+    req.transaction.transactionPostDate = fixDate(req.transaction.transactionPostDate);
     const tx = (await getDb()).transaction(
       [AMAZON_STORE, CHASE_STORE, NEEDS_AMAZON_STORE],
       'readwrite',
@@ -261,7 +276,7 @@ const rpcMethods: XactionServiceWorkerMethods = {
       }
     }
     await tx.done;
-    await scheduleCleanup();
+    await schedulePrune();
   },
   async testActual() {
     console.log('testing actual');

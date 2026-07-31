@@ -3,6 +3,8 @@ import {
   getApiServerConfig,
   setApiServerConfig,
   isApiServerConfigComplete,
+  getXadConfig,
+  setXadConfig,
 } from './config';
 import { SITES, patternFor, hostnameFor } from './sites';
 
@@ -31,6 +33,10 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       <label for="chaseAccountId">Actual Budget Chase Account ID:</label>
       <input id="chaseAccountId" required />
     </div>
+    <div>
+      <label for="historyRetentionDays">History Retention (days):</label>
+      <input type="number" id="historyRetentionDays" required />
+    </div>
     <div>Enable the extension on the following sites:</div>
     <div id="enabledSiteList"></div>
     <button type="submit" id="saveButton">Save</button>
@@ -40,7 +46,8 @@ export function initConfigForm({ description }: ConfigFormOptions) {
   const serverUrl = document.getElementById('serverUrl') as HTMLInputElement;
   const apiKey = document.getElementById('apiKey') as HTMLInputElement;
   const syncId = document.getElementById('syncId') as HTMLInputElement;
-  // const chaseAccountId = document.getElementById('chaseAccountId') as HTMLInputElement;
+  const chaseAccountId = document.getElementById('chaseAccountId') as HTMLInputElement;
+  const historyRetentionDays = document.getElementById('historyRetentionDays') as HTMLInputElement;
   const siteListElement = document.getElementById('enabledSiteList');
   const saveButton = document.getElementById('saveButton') as HTMLButtonElement;
   const statusDiv = document.getElementById('status') as HTMLDivElement;
@@ -94,6 +101,15 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     console.error('renderSiteList failed', e);
   });
 
+  void (async () => {
+    const xadConfig = await getXadConfig();
+    if (!xadConfig) return;
+    chaseAccountId.value = xadConfig.actual.chaseAccountId;
+    historyRetentionDays.value = String(xadConfig.general.historyRetentionDays);
+  })().catch((e) => {
+    console.error('getXadConfig failed', e);
+  });
+
   saveButton.addEventListener('click', async () => {
     saveButton.disabled = true;
     try {
@@ -127,6 +143,10 @@ export function initConfigForm({ description }: ConfigFormOptions) {
         syncId: syncId.value,
       };
       await setApiServerConfig(config);
+      await setXadConfig({
+        actual: { chaseAccountId: chaseAccountId.value },
+        general: { historyRetentionDays: Number(historyRetentionDays.value) },
+      });
       showStatus(
         !isApiServerConfigComplete(config) ? INCOMPLETE_WARNING : 'Settings saved',
         'success',

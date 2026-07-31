@@ -18,6 +18,7 @@ Necessary
 * Basic testing
 * Don't pre-emptively get permissions for all sites. Maybe narrower hosts / paths.
 * Be consistent about error handling e.g. if we can get some invoices but not others
+* Prune immediately when historyRetentionDays changes
 
 Probably
 * Move scrapeUi back into chaseContent
@@ -26,6 +27,7 @@ Maybe
 * maybe initial ui is in popup and we just use box for status
 
 Nice to have
+* Be more robust to failed fetch of single transaction/invoice but still show a clear error (in red!)
 * Provide a hint that we need (N) orders from Amazon
 * Provide a hint that we have (some) state we can usefully post to Actual
 * Provide a hint that you might be logged into the wrong Amazon account
