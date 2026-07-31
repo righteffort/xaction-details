@@ -6,15 +6,34 @@ import {
 } from './config';
 
 interface ConfigFormOptions {
-  // Prefill with the currently-saved config (options page only).
-  prefill: boolean;
-  // Message shown after a successful save.
-  savedMessage: string;
+  description: string;
 }
 
 const INCOMPLETE_WARNING = 'Incomplete configuration, extension will be inactive';
 
-export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
+export function initConfigForm({ description }: ConfigFormOptions) {
+  document.body.innerHTML = `
+    <p>${description}</p>
+    <div>
+      <label for="serverUrl">API Server URL:</label>
+      <input type="url" id="serverUrl" required />
+    </div>
+    <div>
+      <label for="apiKey">API Server API key:</label>
+      <input id="apiKey" required />
+    </div>
+    <div>
+      <label for="syncId">Actual Budget Sync ID:</label>
+      <input id="syncId" required />
+    </div>
+    <div>
+      <label for="chaseAccountId">Actual Budget Chase Account ID:</label>
+      <input id="chaseAccountId" required />
+    </div>
+    <button type="submit" id="saveButton">Save</button>
+    <div id="status"></div>
+  `;
+
   const serverUrl = document.getElementById('serverUrl') as HTMLInputElement;
   const apiKey = document.getElementById('apiKey') as HTMLInputElement;
   const syncId = document.getElementById('syncId') as HTMLInputElement;
@@ -27,19 +46,18 @@ export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
     statusDiv.className = type;
   }
 
-  // TODO this is all silly we can have a single form for onboarding and options probably.
-  if (prefill) {
-    void (async () => {
-      const config = await getApiServerConfig();
-      if (!config) return;
-      serverUrl.value = config.url;
-      apiKey.value = config.apiKey;
-      syncId.value = config.syncId;
-      if (!isApiServerConfigComplete(config)) {
-        showStatus('Incomplete configuration', 'warning');
-      }
-    })();
-  }
+  void (async () => {
+    const config = await getApiServerConfig();
+    if (!config) return;
+    serverUrl.value = config.url;
+    apiKey.value = config.apiKey;
+    syncId.value = config.syncId;
+    if (!isApiServerConfigComplete(config)) {
+      showStatus('Incomplete configuration', 'warning');
+    }
+  })().catch((e) => {
+    console.error('getApiServerConfig failed', e);
+  });
 
   saveButton.addEventListener('click', async () => {
     try {
@@ -50,7 +68,10 @@ export function initConfigForm({ prefill, savedMessage }: ConfigFormOptions) {
       };
 
       await setApiServerConfig(config);
-      showStatus(!isApiServerConfigComplete(config) ? INCOMPLETE_WARNING : savedMessage, 'success');
+      showStatus(
+        !isApiServerConfigComplete(config) ? INCOMPLETE_WARNING : 'Settings saved',
+        'success',
+      );
     } catch (e) {
       const msg = `Failed: ${e instanceof Error ? e.message : e}`;
       showStatus(msg, 'error');
