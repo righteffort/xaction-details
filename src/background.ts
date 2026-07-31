@@ -5,6 +5,7 @@ import type { AmazonInvoice, AmazonOrderNumber } from './amazon';
 import type { ChaseTransaction, ChaseTransactionId } from './chase';
 import { getApiServerConfig, getXadConfig, isApiServerConfigComplete } from './config';
 import { ActualHttpClient, testActual } from './testActual';
+import { SITES, patternFor, hostnameFor, registrationIdFor } from './sites';
 
 const DB_NAME = 'xaction-details-db';
 const DB_VERSION = 1;
@@ -37,8 +38,124 @@ interface Db extends DBSchema {
   };
 }
 
+const DECLARATIVE_RULE_ID = 'xad-show-action';
+
+// Wrap callback-based removeRules and addRules in Promise so callers can await.
+function removeAllRules() {
+  return new Promise<void>((resolve, reject) => {
+    chrome.declarativeContent.onPageChanged.removeRules(undefined, () => {
+      if (chrome.runtime.lastError) {
+        console.error('removeRules failed:', chrome.runtime.lastError.message);
+        reject(new Error(chrome.runtime.lastError.message));
+        return;
+      }
+      resolve();
+    });
+  });
+}
+
+function addShowRule(grantedOrigins: string[]) {
+  return new Promise<void>((resolve, reject) => {
+    chrome.declarativeContent.onPageChanged.addRules(
+      [
+        {
+          id: DECLARATIVE_RULE_ID,
+          conditions: grantedOrigins.map(
+            (origin) =>
+              new chrome.declarativeContent.PageStateMatcher({
+                pageUrl: { hostEquals: hostnameFor(origin), schemes: ['https'] },
+              }),
+          ),
+          actions: [new chrome.declarativeContent.ShowAction()],
+        },
+      ],
+      () => {
+        if (chrome.runtime.lastError) {
+          console.error('addRules failed:', chrome.runtime.lastError.message);
+          reject(new Error(chrome.runtime.lastError.message));
+          return;
+        }
+        resolve();
+      },
+    );
+  });
+}
+
+async function doSyncDeclarativeContentRules() {
+  const { origins = [] } = await chrome.permissions.getAll();
+  const grantedOrigins = SITES.map((site) => site.origin).filter((origin) =>
+    origins.includes(patternFor(origin)),
+  );
+  chrome.action.disable();
+  await removeAllRules();
+  if (grantedOrigins.length === 0) {
+    return;
+  }
+  await addShowRule(grantedOrigins);
+}
+
+// Avoid races in rule updates by serializing through one chained queue.
+let syncQueue = Promise.resolve();
+function syncDeclarativeContentRules() {
+  syncQueue = syncQueue.then(doSyncDeclarativeContentRules).catch((e) => {
+    console.error('syncDeclarativeContentRules failed:', e);
+  });
+  return syncQueue;
+}
+
+async function handlePermissionsAdded(permissions: chrome.permissions.Permissions) {
+  await syncDeclarativeContentRules();
+  const origins = permissions.origins || [];
+  if (origins.length === 0) return;
+  // Inject site's content script in open tabs.
+  for (const site of SITES) {
+    if (!origins.includes(patternFor(site.origin))) continue;
+    const tabs = await chrome.tabs.query({ url: patternFor(site.origin) });
+    for (const tab of tabs) {
+      if (tab.id === undefined) continue;
+      try {
+        await chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: [site.scriptFile],
+        });
+      } catch (e) {
+        console.error('executeScript failed for tab', tab.id, e);
+      }
+    }
+  }
+}
+
+async function handlePermissionsRemoved() {
+  await syncDeclarativeContentRules();
+}
+
+chrome.permissions.onAdded.addListener(handlePermissionsAdded);
+chrome.permissions.onRemoved.addListener(handlePermissionsRemoved);
+
 chrome.runtime.onInstalled.addListener(async (details) => {
-  console.log(`Extension installed at ${new Date()}`, details);
+  console.log(`Extension installed at ${new Date()}. ${JSON.stringify(details)}`);
+
+  const existing = await chrome.scripting.getRegisteredContentScripts();
+  const existingIds = new Set(existing.map((s) => s.id));
+  for (const site of SITES) {
+    const def: chrome.scripting.RegisteredContentScript = {
+      id: registrationIdFor(site),
+      matches: [patternFor(site.origin)],
+      js: [site.scriptFile],
+      runAt: 'document_idle',
+    };
+    try {
+      if (existingIds.has(registrationIdFor(site))) {
+        await chrome.scripting.updateContentScripts([def]);
+      } else {
+        await chrome.scripting.registerContentScripts([def]);
+      }
+    } catch (e) {
+      console.error('failed to register/update content script for', site.origin, e);
+    }
+  }
+  await syncDeclarativeContentRules();
+
   if (details.reason === 'install') {
     const config = await getApiServerConfig();
     if (config == null || !isApiServerConfigComplete(config)) {
@@ -122,7 +239,6 @@ const rpcMethods: XactionServiceWorkerMethods = {
   },
   async hasChaseTransaction(id) {
     const result = (await (await getDb()).getKey(CHASE_STORE, id)) !== undefined;
-    console.debug(`have ${id} ? ${result}`);
     return result;
   },
   async putChaseTransaction(req) {
@@ -143,7 +259,6 @@ const rpcMethods: XactionServiceWorkerMethods = {
           );
         }
       }
-      console.debug(`wrote ${req.id}`);
     }
     await tx.done;
     await scheduleCleanup();

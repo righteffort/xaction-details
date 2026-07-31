@@ -70,4 +70,7 @@ class ChaseContent {
   }
 }
 
-new ChaseContent();
+if (!window.__xad_ChaseContentInjected) {
+  window.__xad_ChaseContentInjected = true;
+  new ChaseContent();
+}

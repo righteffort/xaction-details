@@ -10,7 +10,7 @@
     "48": "icon/48.png",
     "128": "icon/128.png"
   },
-  "permissions": ["declarativeContent", "storage", "unlimitedStorage"],
+  "permissions": ["alarms", "declarativeContent", "scripting", "storage", "unlimitedStorage"],
   "optional_host_permissions": ["*://*/*"],
   "options_ui": {
     "page": "src/options.html",
@@ -22,15 +22,5 @@
   "background": {
     "service_worker": "src/background.js",
     "type": "module"
-  },
-  "content_scripts": [
-    {
-      "matches": ["https://*.chase.com/*"],
-      "js": ["src/chaseContent.js"]
-    },
-    {
-      "matches": ["https://*.amazon.com/*"],
-      "js": ["src/amazonContent.js"]
-    }
-  ]
+  }
 }

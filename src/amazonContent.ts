@@ -155,4 +155,7 @@ class AmazonContent {
   }
 }
 
-new AmazonContent();
+if (!window.__xad_AmazonContentInjected) {
+  window.__xad_AmazonContentInjected = true;
+  new AmazonContent();
+}
