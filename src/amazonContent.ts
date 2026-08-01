@@ -7,6 +7,7 @@ const HOST_ID = 'xaction-details-host';
 class AmazonScrapeUi {
   private host: HTMLElement;
   private shadow: ShadowRoot;
+  private box: HTMLElement;
   private scrapeButton: HTMLButtonElement;
   private statusLine: HTMLElement;
 
@@ -37,6 +38,7 @@ class AmazonScrapeUi {
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         font-family: sans-serif;
         font-size: 13px;
+        outline: none;
       }
       .close-button {
         position: absolute;
@@ -64,7 +66,7 @@ class AmazonScrapeUi {
         margin-right: 4px;
       }
     </style>
-    <div class="box">
+    <div class="box" tabindex="-1">
       <span class="close-button">&times;</span>
       <div id="actions">
         <button type="button" id="scrape">Grab invoices</button>
@@ -72,6 +74,7 @@ class AmazonScrapeUi {
       <div id="status">Idle</div>
     </div>
   `;
+    this.box = this.shadow.querySelector('.box') as HTMLElement;
     this.scrapeButton = this.shadow.querySelector('#scrape') as HTMLButtonElement;
     this.statusLine = this.shadow.querySelector('#status') as HTMLElement;
     const closeButton = this.shadow.querySelector('.close-button') as HTMLElement;
@@ -90,6 +93,8 @@ class AmazonScrapeUi {
         this.hide();
       }
     });
+
+    this.box.addEventListener('mousedown', () => this.box.focus());
   }
 
   setStatus(message: string): void {
@@ -101,14 +106,23 @@ class AmazonScrapeUi {
     this.scrapeButton.disabled = !enabled;
   }
 
+  private focusIfNeeded(): void {
+    if (!this.shadow.contains(document.activeElement)) {
+      this.box.focus();
+    }
+  }
+
   show(): void {
     this.host.style.display = '';
+    this.focusIfNeeded();
   }
   hide(): void {
     this.host.style.display = 'none';
   }
   toggle(): void {
-    this.host.style.display = this.host.style.display === 'none' ? '' : 'none';
+    const willShow = this.host.style.display === 'none';
+    this.host.style.display = willShow ? '' : 'none';
+    if (willShow) this.focusIfNeeded();
   }
   // get isVisible(): boolean { return this.host.style.display !== 'none'; }
 }

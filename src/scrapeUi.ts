@@ -11,6 +11,7 @@ export class ScrapeUi {
 
   private readonly host: HTMLElement;
   private readonly shadow: ShadowRoot;
+  private readonly box: HTMLElement;
   private readonly scrapeButton: HTMLButtonElement;
   private readonly testActualButton: HTMLButtonElement;
   private readonly statusLine: HTMLElement;
@@ -42,6 +43,7 @@ export class ScrapeUi {
         box-shadow: 0 2px 8px rgba(0,0,0,0.15);
         font-family: sans-serif;
         font-size: 13px;
+        outline: none;
       }
       .close-button {
         position: absolute;
@@ -69,7 +71,7 @@ export class ScrapeUi {
         margin-right: 4px;
       }
     </style>
-    <div class="box">
+    <div class="box" tabindex="-1">
       <span class="close-button">&times;</span>
       <div id="actions">
         <label for="from">Start:</label>
@@ -85,6 +87,7 @@ export class ScrapeUi {
     </div>
   `;
 
+    this.box = this.shadow.querySelector('.box') as HTMLElement;
     this.fromInput = this.shadow.querySelector('#from') as HTMLInputElement;
     this.toInput = this.shadow.querySelector('#to') as HTMLInputElement;
     this.scrapeButton = this.shadow.querySelector('#scrape') as HTMLButtonElement;
@@ -119,6 +122,8 @@ export class ScrapeUi {
         this.hide();
       }
     });
+
+    this.box.addEventListener('mousedown', () => this.box.focus());
   }
 
   setStatus(message: string): void {
@@ -130,13 +135,22 @@ export class ScrapeUi {
     this.scrapeButton.disabled = !enabled;
   }
 
+  private focusIfNeeded(): void {
+    if (!this.shadow.contains(document.activeElement)) {
+      this.box.focus();
+    }
+  }
+
   show(): void {
     this.host.style.display = '';
+    this.focusIfNeeded();
   }
   hide(): void {
     this.host.style.display = 'none';
   }
   toggle(): void {
-    this.host.style.display = this.host.style.display === 'none' ? '' : 'none';
+    const willShow = this.host.style.display === 'none';
+    this.host.style.display = willShow ? '' : 'none';
+    if (willShow) this.focusIfNeeded();
   }
 }
