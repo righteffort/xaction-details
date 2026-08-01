@@ -44,7 +44,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     </div>
     <div>Enable the extension on the following sites:</div>
     <div id="enabledSiteList"></div>
-    <button type="submit" id="saveButton">Save</button>
+    <button type="button" id="saveButton">Save</button>
     <div id="status"></div>
   `;
 

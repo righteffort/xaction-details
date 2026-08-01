@@ -67,7 +67,7 @@ class AmazonScrapeUi {
     <div class="box">
       <span class="close-button">&times;</span>
       <div id="actions">
-        <button type="submit" id="scrape">Grab invoices</button>
+        <button type="button" id="scrape">Grab invoices</button>
       </div>
       <div id="status">Idle</div>
     </div>

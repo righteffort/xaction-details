@@ -76,10 +76,10 @@ export class ScrapeUi {
         <input type="date" id="from" required />
         <label for="to">End:</label>
         <input type="date" id="to" required />
-        <button type="submit" id="scrape" disabled>Grab transactions</button>
+        <button type="button" id="scrape" disabled>Grab transactions</button>
       </div>
       <div id="test">
-        <button type="submit" id="testActual">Test Actual</button>
+        <button type="button" id="testActual">Test Actual</button>
       </div>
       <div id="status">Idle</div>
     </div>
