@@ -1,4 +1,5 @@
 import {
+  type ApiServerConfig,
   getOrigin,
   getApiServerConfig,
   setApiServerConfig,
@@ -26,6 +27,10 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       <input id="apiKey" required />
     </div>
     <div>
+      <label for="encryptionKey">Actual Budget encryption key:</label>
+      <input id="encryptionKey"/>
+    </div>
+    <div>
       <label for="syncId">Actual Budget Sync ID:</label>
       <input id="syncId" required />
     </div>
@@ -35,7 +40,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     </div>
     <div>
       <label for="historyRetentionDays">History Retention (days):</label>
-      <input type="number" id="historyRetentionDays" min="1" required />
+      <input type="number" id="historyRetentionDays" min="1"/>
     </div>
     <div>Enable the extension on the following sites:</div>
     <div id="enabledSiteList"></div>
@@ -45,6 +50,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
 
   const serverUrl = document.getElementById('serverUrl') as HTMLInputElement;
   const apiKey = document.getElementById('apiKey') as HTMLInputElement;
+  const encryptionPassword = document.getElementById('encryptionKey') as HTMLInputElement;
   const syncId = document.getElementById('syncId') as HTMLInputElement;
   const chaseAccountId = document.getElementById('chaseAccountId') as HTMLInputElement;
   const historyRetentionDays = document.getElementById('historyRetentionDays') as HTMLInputElement;
@@ -89,6 +95,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     if (!config) return;
     serverUrl.value = config.url;
     apiKey.value = config.apiKey;
+    encryptionPassword.value = config.budgetEncryptionPassword ?? '';
     syncId.value = config.syncId;
     if (!isApiServerConfigComplete(config)) {
       showStatus('Incomplete configuration', 'warning');
@@ -142,11 +149,13 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     saveButton.disabled = true;
     try {
       const { hasApiServerPermission } = await permissionsPromise;
-      const config = {
+      const config: ApiServerConfig = {
         url: getOrigin(serverUrl.value),
         apiKey: apiKey.value,
+        ...(encryptionPassword.value && {
+          budgetEncryptionPassword: encryptionPassword.value,
+        }),
         syncId: syncId.value,
-        hasPermission: hasApiServerPermission,
       };
       await setApiServerConfig(config);
       await setXadConfig({

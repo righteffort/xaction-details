@@ -2,9 +2,8 @@
 export type ApiServerConfig = {
   url: string;
   apiKey: string;
-  budgetEncryptionKey?: string;
+  budgetEncryptionPassword?: string;
   syncId: string;
-  hasPermission?: boolean;
 };
 // Non-sensitive
 export type XadConfig = {

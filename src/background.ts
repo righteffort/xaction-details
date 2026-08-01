@@ -290,7 +290,7 @@ const rpcMethods: XactionServiceWorkerMethods = {
     if (config == null || !isApiServerConfigComplete(config)) {
       throw new Error('Incomplete API server configuration, update extension options');
     }
-    const api = new ActualHttpClient(config || fail('wtf'));
+    const api = new ActualHttpClient(config || fail('Unable to create Actual Budget HTTP client'));
     await testActual(api);
     console.log('tested actual');
   },

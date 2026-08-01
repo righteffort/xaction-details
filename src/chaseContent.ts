@@ -72,6 +72,6 @@ class ChaseContent {
 
 const INJECTION_MARKER = '__xad_ChaseContentInjected';
 if (!document.documentElement.dataset[INJECTION_MARKER]) {
-  document.documentElement.dataset['__xad_ChaseContentInjected'] = '1';
+  document.documentElement.dataset[INJECTION_MARKER] = '1';
   new ChaseContent();
 }

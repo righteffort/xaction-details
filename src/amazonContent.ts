@@ -157,6 +157,6 @@ class AmazonContent {
 
 const INJECTION_MARKER = '__xad_AmazonContentInjected';
 if (!document.documentElement.dataset[INJECTION_MARKER]) {
-  document.documentElement.dataset['__xad_AmazonContentInjected'] = '1';
+  document.documentElement.dataset[INJECTION_MARKER] = '1';
   new AmazonContent();
 }

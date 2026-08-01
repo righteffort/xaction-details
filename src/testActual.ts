@@ -17,8 +17,8 @@ export class ActualHttpClient {
       baseUrl: `${config.url}/v1`,
       headers: {
         'x-api-key': config.apiKey,
-        ...(config.budgetEncryptionKey !== undefined && {
-          'budget-encryption-password': config.budgetEncryptionKey,
+        ...(config.budgetEncryptionPassword !== undefined && {
+          'budget-encryption-password': config.budgetEncryptionPassword,
         }),
       },
     });
