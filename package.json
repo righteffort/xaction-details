@@ -14,7 +14,7 @@
     "build": "node build.mjs",
     "build:check": "pnpm check && node build.mjs",
     "rmrf": "node scripts/rmrf.mjs",
-    "dist": "pnpm rmrf dist.zip && pnpm build && cd dist && zip -r ../dist.zip *",
+    "dist": "pnpm rmrf dist.zip && pnpm build && outdir=$PWD && cd dist && zip -r \"$outdir/dist.zip\" .",
     "clean": "pnpm rmrf dist dist.zip src/gen",
     "typecheck": "tsc --noEmit",
     "lint": "biome lint",
