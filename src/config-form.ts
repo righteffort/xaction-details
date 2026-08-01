@@ -24,11 +24,11 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     </div>
     <div>
       <label for="apiKey">API Server API key:</label>
-      <input id="apiKey" required />
+      <input type="password" id="apiKey" required />
     </div>
     <div>
       <label for="encryptionKey">Actual Budget encryption key:</label>
-      <input id="encryptionKey"/>
+      <input type="password" id="encryptionKey"/>
     </div>
     <div>
       <label for="syncId">Actual Budget Sync ID:</label>
@@ -90,6 +90,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     }
   }
 
+  // TODO NOW: Check the logic here, e.g. do we enable input before we've populated with current state? Are there races between changes from submit taking effect and the form state updating?
   void (async () => {
     const config = await getApiServerConfig();
     if (!config) return;
@@ -145,6 +146,8 @@ export function initConfigForm({ description }: ConfigFormOptions) {
   }
 
   saveButton.addEventListener('click', async () => {
+    // TODO: somewhere, revoke permissions prior value of serverUrl when serverUrl changes
+    // TODO: somewhere if set*Config calls fail make sure form values re-sync to reality
     const permissionsPromise = syncPermissions();
     saveButton.disabled = true;
     try {
