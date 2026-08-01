@@ -1,5 +1,6 @@
 import {
   type ApiServerConfig,
+  type XadConfig,
   getOrigin,
   getApiServerConfig,
   setApiServerConfig,
@@ -7,47 +8,52 @@ import {
   getXadConfig,
   setXadConfig,
 } from './config';
+import { getApiUrl } from './testActual';
 import { SITES, patternFor, hostnameFor } from './sites';
 
 interface ConfigFormOptions {
   description: string;
 }
 
-const INCOMPLETE_WARNING = 'Incomplete configuration, extension will be inactive';
-
 export function initConfigForm({ description }: ConfigFormOptions) {
   document.body.innerHTML = `
+    <style>
+      #status.error { color: #b00020; }
+    </style>
     <p>${description}</p>
-    <div>
-      <label for="serverUrl">API Server URL:</label>
-      <input type="url" id="serverUrl" required />
-    </div>
-    <div>
-      <label for="apiKey">API Server API key:</label>
-      <input type="password" id="apiKey" required />
-    </div>
-    <div>
-      <label for="encryptionKey">Actual Budget encryption key:</label>
-      <input type="password" id="encryptionKey"/>
-    </div>
-    <div>
-      <label for="syncId">Actual Budget Sync ID:</label>
-      <input id="syncId" required />
-    </div>
-    <div>
-      <label for="chaseAccountId">Actual Budget Chase Account ID:</label>
-      <input id="chaseAccountId" required />
-    </div>
-    <div>
-      <label for="historyRetentionDays">History Retention (days):</label>
-      <input type="number" id="historyRetentionDays" min="1"/>
-    </div>
-    <div>Enable the extension on the following sites:</div>
-    <div id="enabledSiteList"></div>
-    <button type="button" id="saveButton">Save</button>
+    <fieldset id="formFieldset" disabled>
+      <div>
+        <label for="serverUrl">API Server URL:</label>
+        <input type="url" id="serverUrl" required />
+      </div>
+      <div>
+        <label for="apiKey">API Server API key:</label>
+        <input type="password" id="apiKey" required />
+      </div>
+      <div>
+        <label for="encryptionKey">Actual Budget encryption key:</label>
+        <input type="password" id="encryptionKey"/>
+      </div>
+      <div>
+        <label for="syncId">Actual Budget Sync ID:</label>
+        <input id="syncId" required />
+      </div>
+      <div>
+        <label for="chaseAccountId">Actual Budget Chase Account ID:</label>
+        <input id="chaseAccountId" required />
+      </div>
+      <div>
+        <label for="historyRetentionDays">History Retention (days):</label>
+        <input type="number" id="historyRetentionDays" min="1"/>
+      </div>
+      <div>Enable the extension on the following sites:</div>
+      <div id="enabledSiteList"></div>
+      <button type="button" id="saveButton">Save</button>
+    </fieldset>
     <div id="status"></div>
   `;
 
+  const formFieldset = document.getElementById('formFieldset') as HTMLFieldSetElement;
   const serverUrl = document.getElementById('serverUrl') as HTMLInputElement;
   const apiKey = document.getElementById('apiKey') as HTMLInputElement;
   const encryptionPassword = document.getElementById('encryptionKey') as HTMLInputElement;
@@ -63,7 +69,9 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     statusDiv.className = type;
   }
 
-  const checkboxByOrigin = new Map<string, HTMLInputElement>();
+  function setFormEnabled(enabled: boolean) {
+    formFieldset.disabled = !enabled;
+  }
 
   async function getGrantedOrigins(): Promise<string[]> {
     const { origins = [] } = await chrome.permissions.getAll();
@@ -71,6 +79,8 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       origins.includes(patternFor(origin)),
     );
   }
+
+  const checkboxByOrigin = new Map<string, HTMLInputElement>();
 
   async function renderSiteList() {
     if (!siteListElement) return;
@@ -90,37 +100,41 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     }
   }
 
-  // TODO NOW: Check the logic here, e.g. do we enable input before we've populated with current state? Are there races between changes from submit taking effect and the form state updating?
-  void (async () => {
-    const config = await getApiServerConfig();
-    if (!config) return;
-    serverUrl.value = config.url;
-    apiKey.value = config.apiKey;
-    encryptionPassword.value = config.budgetEncryptionPassword ?? '';
-    syncId.value = config.syncId;
-    if (!isApiServerConfigComplete(config)) {
-      showStatus('Incomplete configuration', 'warning');
-    }
-  })().catch((e) => {
-    console.error('getApiServerConfig failed', e);
-  });
-
-  void renderSiteList().catch((e) => {
-    console.error('renderSiteList failed', e);
-  });
-
-  void (async () => {
-    const xadConfig = await getXadConfig();
-    if (!xadConfig) return;
-    chaseAccountId.value = xadConfig.actual.chaseAccountId;
-    historyRetentionDays.value = String(xadConfig.general.historyRetentionDays);
-  })().catch((e) => {
-    console.error('getXadConfig failed', e);
-  });
-
-  function apiServerPattern(): string | null {
-    return serverUrl.value ? `${getOrigin(serverUrl.value)}/v1/*` : null;
+  function apiServerPattern(url: string): string | null {
+    return url ? `${getApiUrl(getOrigin(url))}/*` : null;
   }
+
+  let lastServerPattern: string | null = null;
+
+  async function loadInitialState() {
+    await Promise.all([
+      (async () => {
+        const config = await getApiServerConfig();
+        if (!config) return;
+        serverUrl.value = config.url;
+        apiKey.value = config.apiKey;
+        encryptionPassword.value = config.budgetEncryptionPassword ?? '';
+        syncId.value = config.syncId;
+        lastServerPattern = apiServerPattern(config.url);
+      })().catch((e) => {
+        console.error('getApiServerConfig failed', e);
+      }),
+      (async () => {
+        const xadConfig = await getXadConfig();
+        if (!xadConfig) return;
+        chaseAccountId.value = xadConfig.actual.chaseAccountId;
+        historyRetentionDays.value = String(xadConfig.general.historyRetentionDays);
+      })().catch((e) => {
+        console.error('getXadConfig failed', e);
+      }),
+      renderSiteList().catch((e) => {
+        console.error('renderSiteList failed', e);
+      }),
+    ]);
+    setFormEnabled(true);
+  }
+
+  void loadInitialState();
 
   async function syncPermissions(): Promise<{ hasApiServerPermission: boolean }> {
     const toGrant: string[] = [];
@@ -130,11 +144,23 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       if (!checkbox) continue;
       (checkbox.checked ? toGrant : toRevoke).push(patternFor(site.origin));
     }
-    const apiServerOrigin = apiServerPattern();
-    if (apiServerOrigin) toGrant.push(apiServerOrigin);
+    const newServerPattern = apiServerPattern(serverUrl.value);
+    if (newServerPattern) toGrant.push(newServerPattern);
+    if (toGrant.length > 0) {
+      try {
+        await chrome.permissions.request({ origins: toGrant });
+      } catch (e) {
+        console.error('permissions.request failed', e);
+      }
+    }
 
-    const granted = await chrome.permissions.request({ origins: toGrant });
-
+    // Continue to revoke even though the user changed their mind about what to grant.
+    const hasNewApiServerPermission = newServerPattern
+      ? await chrome.permissions.contains({ origins: [newServerPattern] })
+      : true;
+    if (lastServerPattern && lastServerPattern !== newServerPattern && hasNewApiServerPermission) {
+      toRevoke.push(lastServerPattern);
+    }
     if (toRevoke.length > 0) {
       try {
         await chrome.permissions.remove({ origins: toRevoke });
@@ -142,16 +168,14 @@ export function initConfigForm({ description }: ConfigFormOptions) {
         console.error('permissions.remove failed', e);
       }
     }
-    return { hasApiServerPermission: apiServerOrigin ? granted : true };
+    if (hasNewApiServerPermission) lastServerPattern = newServerPattern;
+
+    return { hasApiServerPermission: hasNewApiServerPermission };
   }
 
   saveButton.addEventListener('click', async () => {
-    // TODO: somewhere, revoke permissions prior value of serverUrl when serverUrl changes
-    // TODO: somewhere if set*Config calls fail make sure form values re-sync to reality
-    const permissionsPromise = syncPermissions();
-    saveButton.disabled = true;
+    setFormEnabled(false);
     try {
-      const { hasApiServerPermission } = await permissionsPromise;
       const config: ApiServerConfig = {
         url: getOrigin(serverUrl.value),
         apiKey: apiKey.value,
@@ -160,15 +184,16 @@ export function initConfigForm({ description }: ConfigFormOptions) {
         }),
         syncId: syncId.value,
       };
-      await setApiServerConfig(config);
-      await setXadConfig({
+      const xadConfig: XadConfig = {
         actual: { chaseAccountId: chaseAccountId.value },
         general: { historyRetentionDays: Number(historyRetentionDays.value) },
-      });
+      };
+      await Promise.all([setApiServerConfig(config), setXadConfig(xadConfig)]);
+      const { hasApiServerPermission } = await syncPermissions();
       if (!hasApiServerPermission) {
         showStatus('Permission was denied. Extension will not connect to API server.', 'error');
       } else if (!isApiServerConfigComplete(config)) {
-        showStatus(INCOMPLETE_WARNING, 'success');
+        showStatus('Incomplete configuration, extension will be inactive', 'error');
       } else {
         showStatus('Settings saved', 'success');
       }
@@ -182,7 +207,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       } catch (e) {
         console.error('renderSiteList failed', e);
       }
-      saveButton.disabled = false;
+      setFormEnabled(true);
     }
   });
 }

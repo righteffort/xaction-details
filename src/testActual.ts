@@ -9,12 +9,16 @@ type Account = components['schemas']['Account'];
 // type Budget = components["schemas"]["Budget"];
 // type Category = components["schemas"]["Category"];
 
+export function getApiUrl(url: string): string {
+  return `${url}/v1`;
+}
+
 export class ActualHttpClient {
   private readonly api: Client<paths>;
   private readonly defaultSyncId: string;
   constructor(config: ApiServerConfig) {
     this.api = createClient<paths>({
-      baseUrl: `${config.url}/v1`,
+      baseUrl: getApiUrl(config.url),
       headers: {
         'x-api-key': config.apiKey,
         ...(config.budgetEncryptionPassword !== undefined && {
