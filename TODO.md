@@ -8,6 +8,8 @@ Necessary
 * Basic testing
 * Be more robust to failed fetch of single transaction/invoice but still show a clear error (in red!)
 * Prune immediately when historyRetentionDays changes
+* Add to README: links to store listing, actual-http-api, actual budget.
+* Add instructions to README.
 
 Probably
 * Move scrapeUi back into chaseContent
