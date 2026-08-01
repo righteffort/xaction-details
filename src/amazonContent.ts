@@ -79,6 +79,17 @@ class AmazonScrapeUi {
     this.scrapeButton.addEventListener('click', () => {
       onScrape();
     });
+
+    this.shadow.addEventListener('keydown', (e: Event) => {
+      if (!(e instanceof KeyboardEvent)) return;
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        if (!this.scrapeButton.disabled) this.scrapeButton.click();
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        this.hide();
+      }
+    });
   }
 
   setStatus(message: string): void {

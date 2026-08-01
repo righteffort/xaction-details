@@ -19,7 +19,7 @@ interface ConfigFormOptions {
 export function initConfigForm({ description }: ConfigFormOptions) {
   document.body.innerHTML = `
     <style>
-      body { width: 520px; }
+      body { width: 720px; }
       #status.error { color: #b00020; }
       #formFieldset { border: none; padding: 0; margin: 0; }
       #formFieldset > div { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
@@ -181,6 +181,16 @@ export function initConfigForm({ description }: ConfigFormOptions) {
 
     return { hasApiServerPermission: hasNewApiServerPermission };
   }
+
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      if (!saveButton.disabled) saveButton.click();
+    } else if (e.key === 'Escape') {
+      e.preventDefault();
+      window.close();
+    }
+  });
 
   saveButton.addEventListener('click', async () => {
     if (!historyRetentionDays.reportValidity()) return;
