@@ -220,8 +220,11 @@ async function schedulePrune() {
 
 chrome.alarms.onAlarm.addListener(async (alarm) => {
   if (alarm.name !== PRUNE_ALARM_NAME) return;
+  const configuredDays = (await getXadConfig())?.general.historyRetentionDays;
   const days =
-    (await getXadConfig())?.general.historyRetentionDays || DEFAULT_HISTORY_RETENTION_DAYS;
+    configuredDays != null && Number.isFinite(configuredDays) && configuredDays >= 1
+      ? configuredDays
+      : DEFAULT_HISTORY_RETENTION_DAYS;
   try {
     await pruneHistory(days);
   } catch (e) {

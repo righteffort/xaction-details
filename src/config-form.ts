@@ -35,7 +35,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     </div>
     <div>
       <label for="historyRetentionDays">History Retention (days):</label>
-      <input type="number" id="historyRetentionDays" required />
+      <input type="number" id="historyRetentionDays" min="1" required />
     </div>
     <div>Enable the extension on the following sites:</div>
     <div id="enabledSiteList"></div>
