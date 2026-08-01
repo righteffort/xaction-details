@@ -70,7 +70,8 @@ class ChaseContent {
   }
 }
 
-if (!window.__xad_ChaseContentInjected) {
-  window.__xad_ChaseContentInjected = true;
+const INJECTION_MARKER = '__xad_ChaseContentInjected';
+if (!document.documentElement.dataset[INJECTION_MARKER]) {
+  document.documentElement.dataset['__xad_ChaseContentInjected'] = '1';
   new ChaseContent();
 }

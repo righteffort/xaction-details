@@ -155,7 +155,8 @@ class AmazonContent {
   }
 }
 
-if (!window.__xad_AmazonContentInjected) {
-  window.__xad_AmazonContentInjected = true;
+const INJECTION_MARKER = '__xad_AmazonContentInjected';
+if (!document.documentElement.dataset[INJECTION_MARKER]) {
+  document.documentElement.dataset['__xad_AmazonContentInjected'] = '1';
   new AmazonContent();
 }
