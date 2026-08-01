@@ -3,7 +3,12 @@ import type { DBSchema, IDBPDatabase } from 'idb';
 import type { XactionServiceWorkerMethods, XactionServiceWorkerRequest } from './rpc';
 import type { AmazonInvoice, AmazonOrderNumber } from './amazon';
 import type { ChaseTransaction, ChaseTransactionId } from './chase';
-import { getApiServerConfig, getXadConfig, isApiServerConfigComplete } from './config';
+import {
+  DEFAULT_HISTORY_RETENTION_DAYS,
+  getApiServerConfig,
+  getXadConfig,
+  isApiServerConfigComplete,
+} from './config';
 import { ActualHttpClient, testActual } from './testActual';
 import { SITES, patternFor, hostnameFor, registrationIdFor } from './sites';
 
@@ -13,7 +18,6 @@ const AMAZON_STORE = 'amazon';
 const CHASE_STORE = 'chase';
 const NEEDS_AMAZON_STORE = 'needs_amazon';
 const PRUNABLE_STORES = [AMAZON_STORE, CHASE_STORE, NEEDS_AMAZON_STORE] as const;
-const DEFAULT_HISTORY_RETENTION_DAYS = 90;
 const PRUNE_ALARM_NAME = 'pruneHistory';
 const PRUNE_ALARM_DELAY_MINUTES = 10;
 

@@ -1,6 +1,7 @@
 import {
   type ApiServerConfig,
   type XadConfig,
+  DEFAULT_HISTORY_RETENTION_DAYS,
   getOrigin,
   getApiServerConfig,
   setApiServerConfig,
@@ -18,7 +19,13 @@ interface ConfigFormOptions {
 export function initConfigForm({ description }: ConfigFormOptions) {
   document.body.innerHTML = `
     <style>
+      body { width: 520px; }
       #status.error { color: #b00020; }
+      #formFieldset { border: none; padding: 0; margin: 0; }
+      #formFieldset > div { display: flex; align-items: center; gap: 8px; margin-bottom: 8px; }
+      #formFieldset > div > label { flex: 0 0 220px; text-align: right; }
+      #formFieldset > div > input { flex: 1 1 auto; min-width: 0; box-sizing: border-box; }
+      #enabledSiteList { margin-bottom: 8px; }
     </style>
     <p>${description}</p>
     <fieldset id="formFieldset" disabled>
@@ -44,7 +51,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
       </div>
       <div>
         <label for="historyRetentionDays">History Retention (days):</label>
-        <input type="number" id="historyRetentionDays" min="1"/>
+        <input type="number" id="historyRetentionDays" min="1" required/>
       </div>
       <div>Enable the extension on the following sites:</div>
       <div id="enabledSiteList"></div>
@@ -123,7 +130,9 @@ export function initConfigForm({ description }: ConfigFormOptions) {
         const xadConfig = await getXadConfig();
         if (!xadConfig) return;
         chaseAccountId.value = xadConfig.actual.chaseAccountId;
-        historyRetentionDays.value = String(xadConfig.general.historyRetentionDays);
+        historyRetentionDays.value = String(
+          xadConfig.general.historyRetentionDays || DEFAULT_HISTORY_RETENTION_DAYS,
+        );
       })().catch((e) => {
         console.error('getXadConfig failed', e);
       }),
@@ -158,7 +167,7 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     const hasNewApiServerPermission = newServerPattern
       ? await chrome.permissions.contains({ origins: [newServerPattern] })
       : true;
-    if (lastServerPattern && lastServerPattern !== newServerPattern && hasNewApiServerPermission) {
+    if (lastServerPattern && lastServerPattern !== newServerPattern) {
       toRevoke.push(lastServerPattern);
     }
     if (toRevoke.length > 0) {
@@ -168,12 +177,13 @@ export function initConfigForm({ description }: ConfigFormOptions) {
         console.error('permissions.remove failed', e);
       }
     }
-    if (hasNewApiServerPermission) lastServerPattern = newServerPattern;
+    lastServerPattern = newServerPattern;
 
     return { hasApiServerPermission: hasNewApiServerPermission };
   }
 
   saveButton.addEventListener('click', async () => {
+    if (!historyRetentionDays.reportValidity()) return;
     setFormEnabled(false);
     try {
       const config: ApiServerConfig = {

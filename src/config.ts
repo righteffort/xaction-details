@@ -1,10 +1,13 @@
 // Sensitive
 export type ApiServerConfig = {
+  // TODO: Better to be 'path' e.g. http://localhost:8080/v1 and take the user at their word
   url: string;
   apiKey: string;
   budgetEncryptionPassword?: string;
   syncId: string;
 };
+export const DEFAULT_HISTORY_RETENTION_DAYS = 90;
+
 // Non-sensitive
 export type XadConfig = {
   actual: {
