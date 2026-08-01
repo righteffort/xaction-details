@@ -21,7 +21,16 @@ export class ActualHttpClient {
           'budget-encryption-password': config.budgetEncryptionKey,
         }),
       },
-      signal: AbortSignal.timeout(30_000),
+    });
+    this.api.use({
+      onRequest({ request }) {
+        // AbortSignal.timeout must be created fresh per request to start counting
+        // from when the request actually goes out, not from client construction.
+        // Request.signal is read-only, so we must construct a new Request to change it.
+        return new Request(request, {
+          signal: AbortSignal.any([request.signal, AbortSignal.timeout(30_000)]),
+        });
+      },
     });
     this.defaultSyncId = config.syncId;
   }
@@ -33,7 +42,8 @@ export class ActualHttpClient {
       params: { path: { budgetSyncId } },
     });
     if (error) {
-      throw new Error(`Failed to list accounts: ${error}`);
+      // TODO: http status code?
+      throw new Error(`Failed to list accounts: ${JSON.stringify(error)}`);
     }
     return data.data;
   }

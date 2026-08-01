@@ -110,47 +110,56 @@ export function initConfigForm({ description }: ConfigFormOptions) {
     console.error('getXadConfig failed', e);
   });
 
+  function apiServerPattern(): string | null {
+    return serverUrl.value ? `${getOrigin(serverUrl.value)}/v1/*` : null;
+  }
+
+  async function syncPermissions(): Promise<{ hasApiServerPermission: boolean }> {
+    const toGrant: string[] = [];
+    const toRevoke: string[] = [];
+    for (const site of SITES) {
+      const checkbox = checkboxByOrigin.get(site.origin);
+      if (!checkbox) continue;
+      (checkbox.checked ? toGrant : toRevoke).push(patternFor(site.origin));
+    }
+    const apiServerOrigin = apiServerPattern();
+    if (apiServerOrigin) toGrant.push(apiServerOrigin);
+
+    const granted = await chrome.permissions.request({ origins: toGrant });
+
+    if (toRevoke.length > 0) {
+      try {
+        await chrome.permissions.remove({ origins: toRevoke });
+      } catch (e) {
+        console.error('permissions.remove failed', e);
+      }
+    }
+    return { hasApiServerPermission: apiServerOrigin ? granted : true };
+  }
+
   saveButton.addEventListener('click', async () => {
+    const permissionsPromise = syncPermissions();
     saveButton.disabled = true;
     try {
-      const grantedOrigins = await getGrantedOrigins();
-      const toGrant: string[] = [];
-      const toRevoke: string[] = [];
-      for (const site of SITES) {
-        const checkbox = checkboxByOrigin.get(site.origin);
-        if (!checkbox) continue;
-        const currentlyGranted = grantedOrigins.includes(site.origin);
-        if (checkbox.checked && !currentlyGranted) toGrant.push(patternFor(site.origin));
-        if (!checkbox.checked && currentlyGranted) toRevoke.push(patternFor(site.origin));
-      }
-      if (toRevoke.length > 0) {
-        try {
-          await chrome.permissions.remove({ origins: toRevoke });
-        } catch (e) {
-          console.error('permissions.remove failed', e);
-        }
-      }
-      if (toGrant.length > 0) {
-        try {
-          await chrome.permissions.request({ origins: toGrant });
-        } catch (e) {
-          console.error('permissions.request failed', e);
-        }
-      }
+      const { hasApiServerPermission } = await permissionsPromise;
       const config = {
         url: getOrigin(serverUrl.value),
         apiKey: apiKey.value,
         syncId: syncId.value,
+        hasPermission: hasApiServerPermission,
       };
       await setApiServerConfig(config);
       await setXadConfig({
         actual: { chaseAccountId: chaseAccountId.value },
         general: { historyRetentionDays: Number(historyRetentionDays.value) },
       });
-      showStatus(
-        !isApiServerConfigComplete(config) ? INCOMPLETE_WARNING : 'Settings saved',
-        'success',
-      );
+      if (!hasApiServerPermission) {
+        showStatus('Permission was denied. Extension will not connect to API server.', 'error');
+      } else if (!isApiServerConfigComplete(config)) {
+        showStatus(INCOMPLETE_WARNING, 'success');
+      } else {
+        showStatus('Settings saved', 'success');
+      }
     } catch (e) {
       const msg = `Save failed: ${e instanceof Error ? e.message : e}`;
       showStatus(msg, 'error');

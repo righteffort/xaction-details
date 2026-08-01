@@ -35,20 +35,11 @@ export async function getApiServerConfig(): Promise<ApiServerConfig | null> {
 }
 
 export async function setApiServerConfig(config: ApiServerConfig) {
-  let hasPermission = false;
-  if (config.url) {
-    hasPermission = await chrome.permissions.request({
-      origins: [`${getOrigin(config.url)}/v1/*`],
-    });
-  }
-  await chrome.storage.local.set({ [API_SERVER_CONFIG_KEY]: { ...config, hasPermission } });
-  if (!hasPermission) {
-    throw new Error('Permission was denied. Extension will not connect to API server.');
-  }
+  await chrome.storage.local.set({ [API_SERVER_CONFIG_KEY]: config });
 }
 
 export function isApiServerConfigComplete(config: ApiServerConfig) {
-  return config.url && config.apiKey && config.syncId;
+  return Boolean(config.url && config.apiKey && config.syncId);
 }
 
 export async function getXadConfig(): Promise<XadConfig | null> {
