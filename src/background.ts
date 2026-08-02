@@ -163,7 +163,9 @@ chrome.runtime.onInstalled.addListener(async (details) => {
   if (details.reason === 'install') {
     const config = await getApiServerConfig();
     if (config == null || !isApiServerConfigComplete(config)) {
-      chrome.tabs.create({ url: chrome.runtime.getURL('src/onboarding.html') });
+      chrome.tabs.create({
+        url: `${chrome.runtime.getURL('src/config-form.html')}`,
+      });
     }
   }
 });

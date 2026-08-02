@@ -37,8 +37,6 @@ async function buildHtmlPage(name) {
         output: {
           ...baseOutput,
           entryFileNames: `src/${name}.js`,
-          format: 'iife',
-          codeSplitting: false,
         },
       },
       sourcemap: 'inline',
@@ -64,7 +62,7 @@ async function buildBackground() {
 }
 
 const contentEntries = ['chaseContent', 'amazonContent'];
-const htmlEntries = ['onboarding', 'options'];
+const htmlEntries = ['config-form'];
 
 for (const name of contentEntries) {
   await buildContentScript(name);

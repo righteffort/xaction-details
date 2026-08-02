@@ -13,13 +13,37 @@ export function getApiUrl(url: string): string {
   return `${url}/v1`;
 }
 
+const RESERVED_HEADERS = new Set(['x-api-key', 'budget-encryption-password']);
+
 export class ActualHttpClient {
   private readonly api: Client<paths>;
-  private readonly defaultSyncId: string;
+  private readonly budgetSyncId: string;
   constructor(config: ApiServerConfig) {
+    if (config.url == null) {
+      throw new Error('Misconfiguration: API Server URL not set');
+    }
+    if (config.syncId == null) {
+      throw new Error('Misconfiguration: budget sync ID not set');
+    }
+    this.budgetSyncId = config.syncId;
+    const entries = Object.entries(config.headers);
+    entries.forEach(([name, value], i) => {
+      if (!name) {
+        throw new Error(
+          `Configuration error, blank API server header name for header at index ${i + 1} of ${entries.length}`,
+        );
+      }
+      if (!value) {
+        throw new Error(`Configuration error, API server header '${name}' has blank value`);
+      }
+      if (RESERVED_HEADERS.has(name.toLowerCase())) {
+        throw new Error(`Configuration error, API server header '${name}' is reserved`);
+      }
+    });
     this.api = createClient<paths>({
       baseUrl: getApiUrl(config.url),
       headers: {
+        ...config.headers,
         'x-api-key': config.apiKey,
         ...(config.budgetEncryptionPassword !== undefined && {
           'budget-encryption-password': config.budgetEncryptionPassword,
@@ -36,11 +60,11 @@ export class ActualHttpClient {
         });
       },
     });
-    this.defaultSyncId = config.syncId;
   }
-  async listAccounts(budgetSyncId: string | null): Promise<Account[]> {
-    if (!budgetSyncId) {
-      budgetSyncId = this.defaultSyncId;
+  async listAccounts(): Promise<Account[]> {
+    const budgetSyncId = this.budgetSyncId;
+    if (budgetSyncId == null) {
+      throw new Error('Misconfiguration: budget sync ID not set');
     }
     const { data, error } = await this.api.GET('/budgets/{budgetSyncId}/accounts', {
       params: { path: { budgetSyncId } },
@@ -57,9 +81,9 @@ function renderAccountLabel(account: Account): string {
   return `${account.name} (${account.offbudget ? 'off-budget' : 'on-budget'})`;
 }
 
-export async function testActual(client: ActualHttpClient, budgetSyncId: string | null = null) {
+export async function testActual(client: ActualHttpClient) {
   console.log('in testActual');
-  const accounts = await client.listAccounts(budgetSyncId);
+  const accounts = await client.listAccounts();
   const message = accounts.map((a) => renderAccountLabel(a)).join(',');
   console.log(message);
 }
