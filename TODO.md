@@ -3,9 +3,9 @@ Necessary
   if not is not currently set.
 * onboarding form: explain what access to www.amazon.com and secure.chase.com are used for.
 * Refuse to fetch history beyond prune window
-* What to do about multiple Amazon accounts?
-* Disable Ammazon scraping until logged in
-* Know what's already in local storage to avoid re-fetching it (i.e. default date range for Chase)
+* What to do about multiple merchant accounts?
+* Disable merchant scraping when not logged in.
+* Know what's already in local storage to avoid re-fetching it (i.e. default date range for bank)
 * Update Actual
 * Privacy policy etc
 * Basic testing
@@ -30,17 +30,15 @@ Nice to have
 * Complain during configuration about use of reserved headers, (fetch) time is just a backstop.
 * Invalidate http client when config changes via a config listener?
   Just unconditionally re-read config on every op?
-* Provide a hint that we need (N) orders from Amazon
+* Provide a hint that we need (N) orders from merchant
 * Provide a hint that we have (some) state we can usefully post to Actual
-* Provide a hint that you might be logged into the wrong Amazon account or not logged in at all.
+* Provide a hint that you might be logged into the wrong merchant account or not logged in at all.
 * Links to documentation for non-obvious config-form fields, maybe i
   icon like portfolio tracker. Including headers (in case user thinks
   they should provide the 1-2 headers http server requires).
 * Adjust icon based on enabled/disabled/current site/current status (working, failed, etc)
 * Heavy duty testing with historical data.
-* Maybe give up on Amazon transactions if the credit card transaction is too old.
-* Factor out duplicate CSS
-* Dependabot
+* Maybe give up on merchant transactions if the credit card transaction is too old.
 * Forward compatible with multiple merchants, institutions, multiple accounts at each
 * Deterministic identifier for logged in Amazon user. Apparently: `await fetch(https://www.amazon.com/gp/profile/, { credentials: "include", redirect: "follow" }).url` will have it at the tail of the URL. And the body will have the "label" in `#shop-influencer-profile-name` which we can suggest as the friendly name
 * Use a leaky bucket rate limiter to sleep *before* expensive calls instead of fragile logic to sleep after. See [thromer/amazon-orders](https://github.com/thromer/amazon-orders) repo for an example.
@@ -58,4 +56,21 @@ Nice to have
   * Provide better hints on which field(s) are broken in case of errors
 * Enable/disable action on secure.chase.com based on something about the DOM, if possible.
 * Technically out of scope but would be nice: document cloudflare access
+* Use 'merchant' and 'bank' (or institution, or whatever) throughout
+  the code; more or less the only place amazon and chase should appear
+  is in some config, and in amazon-specific and chase-speicific pieces
+  of contentScript.
+* Use 'app' throughout instead of Actual (shorthand for finance app).
+* Use consistent naming for app transaction and bank transaction in
+  contexts where both are present, namely: `transaction` for app
+  transaction + `bankTransaction` for bank transaction. Rationale:
+  this extension is all about reading/writing app transactions. Bank
+  transactions are just an input.
+* Encapsulate Actual-specific API (types, methods) well enough that
+  supporting another finance app (YNAB) in the future wouldn't be
+  awful.
 
+Probably not
+* Support other finance apps. YNAB is certainly doable, just requires
+  maintaining additional state to persist previously fetched
+  transactions.
